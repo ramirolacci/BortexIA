@@ -9,4 +9,6 @@
   <symbol id="mic" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></symbol>
   <symbol id="send" viewBox="0 0 24 24"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></symbol>
   <symbol id="stop" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12v12H6z"/></symbol>
+  <symbol id="markdown" viewBox="0 0 24 24"><path fill="currentColor" d="M2 5h20v14H2zM5 9h2v3l2-3 2 3V9h2v6H5zm12 0l-3 3 3 3V9z"/></symbol>
+  <symbol id="download" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM12 2v12l4-4h-3V2h-2v8H8l4 4z"/></symbol>
 </svg>

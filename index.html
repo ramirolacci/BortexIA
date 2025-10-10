@@ -14,10 +14,24 @@
   <aside class="sidebar" aria-label="Historial de chats" hidden>
     <header class="sidebar__header">
       <h2>Chats</h2>
-      <button type="button" class="new-chat">
-        <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#refresh"></use></svg>
-        <span>Nuevo</span>
-      </button>
+      <div class="sidebar__actions">
+        <button type="button" class="export-md" title="Exportar Markdown" aria-label="Exportar Markdown">
+          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#markdown"></use></svg>
+          <span>MD</span>
+        </button>
+        <button type="button" class="export-json" title="Exportar JSON" aria-label="Exportar JSON">
+          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#download"></use></svg>
+          <span>JSON</span>
+        </button>
+        <button type="button" class="sidebar__toggle" title="Colapsar (B)" aria-label="Colapsar (B)">
+          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#stop"></use></svg>
+          <span>Colapsar</span>
+        </button>
+        <button type="button" class="new-chat">
+          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#refresh"></use></svg>
+          <span>Nuevo</span>
+        </button>
+      </div>
     </header>
     <ul class="chat-list" role="list"></ul>
   </aside>
@@ -27,20 +41,9 @@
       <h1>BortexIA</h1>
       <p class="hero__tagline">Pregunta cualquier cosa. Yo me encargo del resto.</p>
     </div>
-    <div class="hero__suggestions" role="list">
-      <button type="button" class="suggestion" data-fill="Resume las noticias de hoy">Resume las noticias de hoy</button>
-      <button type="button" class="suggestion" data-fill="Explícame la relatividad en 3 puntos">Explícame la relatividad en 3 puntos</button>
-      <button type="button" class="suggestion" data-fill="Ideas para un post de LinkedIn sobre IA">Ideas para un post de LinkedIn sobre IA</button>
-      <button type="button" class="suggestion" data-fill="¿Qué es WebGPU y para qué sirve?">¿Qué es WebGPU y para qué sirve?</button>
-    </div>
   </section>
   <main>
     <ul aria-live="polite" aria-atomic="false" role="log">
-      <li class="loading">
-        <i></i>
-        <h4>Cargando...</h4>
-        <h5>Esto puede tardar un poco, paciencia.</h5>
-      </li>
     </ul>
   </main>
 

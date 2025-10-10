@@ -15,8 +15,10 @@ const $sidebar = document.querySelector(".sidebar");
 const $chatList = document.querySelector(".chat-list");
 const $newChat = document.querySelector(".sidebar .new-chat");
 const $info = document.querySelector("small");
-const $loading = document.querySelector(".loading");
 const $body = document.body;
+const $sidebarToggle = document.querySelector(".sidebar__toggle");
+const $exportMd = document.querySelector(".export-md");
+const $exportJson = document.querySelector(".export-json");
 
 const STORAGE_CHATS = "bortex:chats";
 const STORAGE_CURRENT = "bortex:currentChatId";
@@ -78,6 +80,20 @@ function renderChatList() {
     li.textContent = chat.title || "Nuevo chat";
     if (chat.id === currentChatId) li.classList.add("active");
     li.addEventListener("click", () => selectChat(chat.id));
+    li.addEventListener("dblclick", () => {
+      li.setAttribute("contenteditable", "true");
+      li.focus();
+      const range = document.createRange();
+      range.selectNodeContents(li);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    });
+    li.addEventListener("blur", () => {
+      if (li.getAttribute("contenteditable") === "true") {
+        li.removeAttribute("contenteditable");
+        const chatRef = chats.find(c => c.id === chat.id);
+        if (chatRef) { chatRef.title = li.textContent.trim() || chatRef.title; save(chats); renderChatList(); }
+      }
+    });
     $chatList.appendChild(li);
   }
 }
@@ -129,7 +145,6 @@ const engine = await CreateWebWorkerMLCEngine(
       if ($info) $info.textContent = info.text;
       if (info.progress === 1 && !end) {
         end = true;
-        $loading?.parentNode?.removeChild($loading);
         $send?.removeAttribute("disabled");
         $toggleSources?.setAttribute("aria-pressed", withSources ? "true" : "false");
         if (!chats.length || !currentChatId) { setEmptyState(true); $sidebar.hidden = true; }
@@ -149,12 +164,8 @@ $toggleSources?.addEventListener("click", () => {
   saveWithSources(withSources);
 });
 
-for (const s of document.querySelectorAll(".suggestion")) {
-  s.addEventListener("click", () => {
-    $textarea.value = s.getAttribute("data-fill") || ""; autosize(); $textarea.focus();
-    $send.toggleAttribute("disabled", $textarea.value.trim() === "");
-  });
-}
+$sidebarToggle?.addEventListener("click", () => { document.body.classList.toggle("sidebar-collapsed"); });
+window.addEventListener("keydown", (e) => { if (e.key.toLowerCase() === "b" && !e.metaKey && !e.ctrlKey && !e.altKey) { document.body.classList.toggle("sidebar-collapsed"); }});
 
 $textarea.addEventListener("input", () => { autosize(); $send.toggleAttribute("disabled", $textarea.value.trim() === ""); });
 $textarea.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $form.requestSubmit(); }});
@@ -225,5 +236,22 @@ $form.addEventListener("submit", async (event) => {
     $textarea.focus();
     renderChatList();
   }
+});
+
+function toMarkdown(chat) {
+  const lines = [`# ${chat.title}`, "", ...chat.messages.map(m => (m.role === "user" ? `**Tú:** ${m.content}` : `**Bortex:** ${m.content}`))];
+  return lines.join("\n\n");
+}
+
+$exportMd?.addEventListener("click", () => {
+  const chat = getCurrentChat(); if (!chat) return;
+  const blob = new Blob([toMarkdown(chat)], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${chat.title || 'chat'}.md`; a.click(); URL.revokeObjectURL(a.href);
+});
+
+$exportJson?.addEventListener("click", () => {
+  const chat = getCurrentChat(); if (!chat) return;
+  const blob = new Blob([JSON.stringify(chat, null, 2)], { type: "application/json;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${chat.title || 'chat'}.json`; a.click(); URL.revokeObjectURL(a.href);
 });
 
