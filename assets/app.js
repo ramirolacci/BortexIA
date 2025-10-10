@@ -147,15 +147,27 @@ const engine = await CreateWebWorkerMLCEngine(
         end = true;
         $send?.removeAttribute("disabled");
         $toggleSources?.setAttribute("aria-pressed", withSources ? "true" : "false");
-        if (!chats.length || !currentChatId) { setEmptyState(true); $sidebar.hidden = true; }
-        else { $sidebar.hidden = false; selectChat(currentChatId); }
+        if (!chats.length || !currentChatId) { 
+          setEmptyState(true); 
+          $sidebar.hidden = true; 
+        } else { 
+          // Si hay chats guardados, mostrar el sidebar
+          const currentChat = chats.find(c => c.id === currentChatId);
+          $sidebar.hidden = !currentChat || currentChat.messages.length === 0;
+          selectChat(currentChatId); 
+        }
         $textarea?.focus();
       }
     },
   }
 );
 
-$newChat?.addEventListener("click", () => { const chat = createChat(""); $sidebar.hidden = false; selectChat(chat.id); });
+$newChat?.addEventListener("click", () => { 
+  const chat = createChat(""); 
+  // Siempre mostrar sidebar cuando se presiona "Nuevo Chat" (ya hay chats previos)
+  $sidebar.hidden = false; 
+  selectChat(chat.id); 
+});
 
 $toggleSources?.addEventListener("click", () => {
   withSources = !$toggleSources.hasAttribute("data-on");
@@ -186,7 +198,11 @@ $form.addEventListener("submit", async (event) => {
   $textarea.value = ""; autosize();
 
   let chat = getCurrentChat();
-  if (!chat) { chat = createChat(messageText); $sidebar.hidden = false; }
+  if (!chat) { 
+    chat = createChat(messageText);
+    // Solo mostrar sidebar si hay más de 1 chat
+    $sidebar.hidden = chats.length <= 1;
+  }
   setEmptyState(false);
   renderChatList();
 
@@ -225,6 +241,11 @@ $form.addEventListener("submit", async (event) => {
 
     chat.messages.push({ role: "assistant", content: reply, sources: urls });
     save(chats);
+    
+    // Mostrar sidebar después de la primera respuesta para permitir crear nuevos chats
+    if (chats.length >= 1 && chat.messages.length >= 2) {
+      $sidebar.hidden = false;
+    }
   } catch (err) {
     if (err?.message !== "aborted") { botTextEl.textContent = "Ha ocurrido un error. Intenta de nuevo."; }
   } finally {

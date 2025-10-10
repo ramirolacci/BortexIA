@@ -427,24 +427,107 @@ body[data-empty="true"] main { height: 46svh; }
   width: 260px;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 16px 12px;
+  padding: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 12px;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
 }
 
 .sidebar__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 12px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
-.sidebar__header h2 { margin: 0; font-size: 14px; color: var(--muted); }
-.sidebar__header .new-chat { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px 8px; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.sidebar__header h2 { 
+  margin: 0; 
+  font-size: 16px; 
+  font-weight: 600;
+  color: var(--text); 
+}
 
-.chat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; overflow: auto; }
-.chat-list li { border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer; }
-.chat-list li.active { outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent); }
+.sidebar__header .new-chat { 
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 8px; 
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebar__header .new-chat:hover {
+  background: var(--primary-hover);
+}
+
+.chat-list { 
+  list-style: none; 
+  margin: 0; 
+  padding: 12px; 
+  display: flex;
+  flex-direction: column;
+  gap: 6px; 
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.chat-list li { 
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px; 
+  padding: 10px 12px; 
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-list li:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.chat-list li.active { 
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.sidebar__footer {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  gap: 6px;
+}
+
+.sidebar__btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+.sidebar__btn:hover {
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+  border-color: var(--muted);
+}
 
 /* Ajuste de layout al mostrar sidebar */
 body[data-empty="false"] .sidebar { display: grid; }
@@ -459,14 +542,30 @@ body[data-empty="false"] main, body[data-empty="false"] .composer, body[data-emp
 /* Estado activo del toggle Fuentes */
 .toggle-sources[aria-pressed="true"] { outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); }
 
-/* Sidebar acciones */
-.sidebar__actions { display: inline-flex; gap: 6px; align-items: center; }
-.sidebar__toggle { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px 8px; cursor: pointer; }
-.export-md, .export-json { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px 8px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
-
 /* Estado colapsado */
 body.sidebar-collapsed .sidebar { transform: translateX(-100%); transition: transform .25s ease; }
 body.sidebar-collapsed main, body.sidebar-collapsed .composer, body.sidebar-collapsed small { margin-left: 0; transition: margin .25s ease; }
 
 /* Título editable al renombrar */
-.chat-list li[contenteditable="true"] { outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); }
+.chat-list li[contenteditable="true"] { 
+  outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); 
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+/* Scrollbar personalizada para la lista de chats */
+.chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 3px;
+}
+
+.chat-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
+}

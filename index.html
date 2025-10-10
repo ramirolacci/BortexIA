@@ -14,26 +14,24 @@
   <aside class="sidebar" aria-label="Historial de chats" hidden>
     <header class="sidebar__header">
       <h2>Chats</h2>
-      <div class="sidebar__actions">
-        <button type="button" class="export-md" title="Exportar Markdown" aria-label="Exportar Markdown">
-          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#markdown"></use></svg>
-          <span>MD</span>
-        </button>
-        <button type="button" class="export-json" title="Exportar JSON" aria-label="Exportar JSON">
-          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#download"></use></svg>
-          <span>JSON</span>
-        </button>
-        <button type="button" class="sidebar__toggle" title="Colapsar (B)" aria-label="Colapsar (B)">
-          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#stop"></use></svg>
-          <span>Colapsar</span>
-        </button>
-        <button type="button" class="new-chat">
-          <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#refresh"></use></svg>
-          <span>Nuevo</span>
-        </button>
-      </div>
+      <button type="button" class="new-chat" title="Nuevo chat" aria-label="Nuevo chat">
+        <svg width="18" height="18" aria-hidden="true"><use href="assets/icons.svg#refresh"></use></svg>
+      </button>
     </header>
     <ul class="chat-list" role="list"></ul>
+    <footer class="sidebar__footer">
+      <button type="button" class="sidebar__btn export-md" title="Exportar MD" aria-label="Exportar Markdown">
+        <svg width="16" height="16" aria-hidden="true"><use href="assets/icons.svg#markdown"></use></svg>
+        <span>MD</span>
+      </button>
+      <button type="button" class="sidebar__btn export-json" title="Exportar JSON" aria-label="Exportar JSON">
+        <svg width="16" height="16" aria-hidden="true"><use href="assets/icons.svg#download"></use></svg>
+        <span>JSON</span>
+      </button>
+      <button type="button" class="sidebar__btn sidebar__toggle" title="Colapsar (B)" aria-label="Ocultar sidebar">
+        <svg width="16" height="16" aria-hidden="true"><use href="assets/icons.svg#stop"></use></svg>
+      </button>
+    </footer>
   </aside>
   <section class="hero" aria-label="Bienvenido a BortexIA">
     <div class="hero__brand">
