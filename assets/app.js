@@ -5,7 +5,7 @@ const $ = (selector) => document.querySelector(selector);
 const $form = document.querySelector("form.composer");
 const $textarea = document.querySelector(".composer textarea");
 const $template = document.querySelector("#message-template");
-const $messages = document.querySelector("ul");
+const $messages = document.querySelector("main ul");
 const $container = document.querySelector("main");
 const $send = document.querySelector(".composer .send");
 const $stop = document.querySelector(".composer .stop");
@@ -16,6 +16,7 @@ const $chatList = document.querySelector(".chat-list");
 const $newChat = document.querySelector(".sidebar .new-chat");
 const $info = document.querySelector("small");
 const $body = document.body;
+const $heroLogoBtn = document.querySelector(".hero__logo-btn");
 const $sidebarToggle = document.querySelector(".sidebar__toggle");
 const $exportMd = document.querySelector(".export-md");
 const $exportJson = document.querySelector(".export-json");
@@ -157,6 +158,7 @@ const engine = await CreateWebWorkerMLCEngine(
           selectChat(currentChatId); 
         }
         $textarea?.focus();
+        updateLogoIndicator();
       }
     },
   }
@@ -166,7 +168,8 @@ $newChat?.addEventListener("click", () => {
   const chat = createChat(""); 
   // Siempre mostrar sidebar cuando se presiona "Nuevo Chat" (ya hay chats previos)
   $sidebar.hidden = false; 
-  selectChat(chat.id); 
+  selectChat(chat.id);
+  updateLogoIndicator();
 });
 
 $toggleSources?.addEventListener("click", () => {
@@ -178,6 +181,37 @@ $toggleSources?.addEventListener("click", () => {
 
 $sidebarToggle?.addEventListener("click", () => { document.body.classList.toggle("sidebar-collapsed"); });
 window.addEventListener("keydown", (e) => { if (e.key.toLowerCase() === "b" && !e.metaKey && !e.ctrlKey && !e.altKey) { document.body.classList.toggle("sidebar-collapsed"); }});
+
+// Función para actualizar el indicador del logo
+function updateLogoIndicator() {
+  if ($heroLogoBtn) {
+    if (chats.length > 0) {
+      $heroLogoBtn.classList.add("has-chats");
+      $heroLogoBtn.setAttribute("title", "Ver historial de chats");
+    } else {
+      $heroLogoBtn.classList.remove("has-chats");
+      $heroLogoBtn.setAttribute("title", "");
+    }
+  }
+}
+
+// Botón del logo para colapsar/expandir el sidebar
+$heroLogoBtn?.addEventListener("click", () => {
+  // Si hay chats guardados, manejar el sidebar
+  if (chats.length > 0) {
+    // Si el sidebar está oculto, mostrarlo
+    if ($sidebar.hidden) {
+      $sidebar.hidden = false;
+      document.body.classList.remove("sidebar-collapsed");
+    } else {
+      // Si el sidebar está visible, colapsarlo
+      document.body.classList.toggle("sidebar-collapsed");
+    }
+  } else {
+    // Si no hay chats, mostrar mensaje informativo
+    alert("Aún no tienes conversaciones guardadas. Haz tu primera pregunta para ver el historial aquí.");
+  }
+});
 
 $textarea.addEventListener("input", () => { autosize(); $send.toggleAttribute("disabled", $textarea.value.trim() === ""); });
 $textarea.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $form.requestSubmit(); }});
@@ -194,6 +228,12 @@ $form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const messageText = $textarea.value.trim();
   if (messageText === "") return;
+  
+  // Verificar que el engine esté listo
+  if (!end || !engine) {
+    alert("La IA aún se está cargando. Espera un momento.");
+    return;
+  }
 
   $textarea.value = ""; autosize();
 
@@ -208,9 +248,13 @@ $form.addEventListener("submit", async (event) => {
 
   const userMessage = { role: "user", content: messageText };
   chat.messages.push(userMessage); save(chats);
+  
+  // Mostrar el mensaje del usuario
+  addMessage(messageText, "user");
 
+  // Mostrar indicador de "escribiendo" del bot
   const { textEl: botTextEl, sourcesEl } = addMessage("", "bot");
-  const typingEl = addTyping();
+  botTextEl.innerHTML = '<span class="typing"><span>Escribiendo</span><span class="dots"><i></i><i></i><i></i></span></span>';
 
   $send.setAttribute("disabled", "");
   $stop.hidden = false;
@@ -219,12 +263,23 @@ $form.addEventListener("submit", async (event) => {
 
   let systemHint = "";
   if (withSources) {
-    systemHint = "\nInstrucción: cuando sea posible, incluye 2-4 fuentes confiables como URLs al final de tu respuesta.";
+    systemHint = "Instrucción: cuando sea posible, incluye 2-4 fuentes confiables como URLs al final de tu respuesta.";
   }
 
   let reply = "";
   try {
-    const chunks = await engine.chat.completions.create({ messages: [...chat.messages, ...(systemHint ? [{ role: "system", content: systemHint }] : [])], stream: true });
+    // Preparar los mensajes con el system prompt al principio si existe
+    let messagesToSend = [...chat.messages];
+    if (systemHint) {
+      messagesToSend = [{ role: "system", content: systemHint }, ...chat.messages];
+    }
+    
+    console.log("Enviando mensaje a la IA:", messagesToSend);
+    const chunks = await engine.chat.completions.create({ 
+      messages: messagesToSend, 
+      stream: true 
+    });
+    
     for await (const chunk of chunks) {
       if (abortController.signal.aborted) throw new Error("aborted");
       const choice = chunk.choices[0];
@@ -242,15 +297,21 @@ $form.addEventListener("submit", async (event) => {
     chat.messages.push({ role: "assistant", content: reply, sources: urls });
     save(chats);
     
-    // Mostrar sidebar después de la primera respuesta para permitir crear nuevos chats
-    if (chats.length >= 1 && chat.messages.length >= 2) {
+    // Mostrar sidebar solo después de recibir la primera respuesta completa
+    // Esto permite crear nuevos chats una vez que ya tienes una conversación
+    if (reply && chat.messages.length >= 2) {
       $sidebar.hidden = false;
     }
+    
+    // Actualizar indicador del logo
+    updateLogoIndicator();
   } catch (err) {
-    if (err?.message !== "aborted") { botTextEl.textContent = "Ha ocurrido un error. Intenta de nuevo."; }
+    if (err?.message !== "aborted") { 
+      console.error("Error en el chat:", err);
+      botTextEl.textContent = `Error: ${err.message || "Problema de conexión con la IA"}`;
+    }
   } finally {
     abortController = null;
-    typingEl?.parentElement?.parentElement?.remove();
     $stop.hidden = true;
     $send.removeAttribute("disabled");
     $container.scrollTop = $container.scrollHeight;

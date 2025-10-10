@@ -249,6 +249,7 @@ small {
   text-align: center;
   gap: 20px;
   padding: 40px 16px 12px;
+  position: relative;
 }
 
 .hero__brand {
@@ -257,11 +258,57 @@ small {
   gap: 10px;
 }
 
+/* Logo flotante en la esquina izquierda */
+.hero__logo-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.hero__logo-btn:hover {
+  transform: scale(1.05);
+}
+
+.hero__logo-btn:active {
+  transform: scale(0.95);
+}
+
+/* El logo flotante siempre está visible */
+.hero__logo-btn {
+  display: block;
+}
+
+/* Indicador cuando hay chats disponibles */
+.hero__logo-btn.has-chats::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: var(--primary);
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
 .hero__logo {
   width: 56px;
   height: 56px;
   border-radius: 12px;
   box-shadow: var(--shadow);
+  display: block;
 }
 
 .hero h1 {
