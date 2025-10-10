@@ -197,19 +197,13 @@ function updateLogoIndicator() {
 
 // Botón del logo para colapsar/expandir el sidebar
 $heroLogoBtn?.addEventListener("click", () => {
-  // Si hay chats guardados, manejar el sidebar
-  if (chats.length > 0) {
-    // Si el sidebar está oculto, mostrarlo
-    if ($sidebar.hidden) {
-      $sidebar.hidden = false;
-      document.body.classList.remove("sidebar-collapsed");
-    } else {
-      // Si el sidebar está visible, colapsarlo
-      document.body.classList.toggle("sidebar-collapsed");
-    }
+  // Si el sidebar está oculto (hidden), mostrarlo
+  if ($sidebar.hidden) {
+    $sidebar.hidden = false;
+    document.body.classList.remove("sidebar-collapsed");
   } else {
-    // Si no hay chats, mostrar mensaje informativo
-    alert("Aún no tienes conversaciones guardadas. Haz tu primera pregunta para ver el historial aquí.");
+    // Si el sidebar está visible, alternar entre colapsado y expandido
+    document.body.classList.toggle("sidebar-collapsed");
   }
 });
 

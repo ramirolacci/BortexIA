@@ -590,8 +590,14 @@ body[data-empty="false"] main, body[data-empty="false"] .composer, body[data-emp
 .toggle-sources[aria-pressed="true"] { outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); }
 
 /* Estado colapsado */
-body.sidebar-collapsed .sidebar { transform: translateX(-100%); transition: transform .25s ease; }
-body.sidebar-collapsed main, body.sidebar-collapsed .composer, body.sidebar-collapsed small { margin-left: 0; transition: margin .25s ease; }
+body.sidebar-collapsed .sidebar { 
+  transform: translateX(-220px); 
+  transition: transform .25s ease; 
+}
+body.sidebar-collapsed main, body.sidebar-collapsed .composer, body.sidebar-collapsed small { 
+  margin-left: 0; 
+  transition: margin .25s ease; 
+}
 
 /* Título editable al renombrar */
 .chat-list li[contenteditable="true"] { 
