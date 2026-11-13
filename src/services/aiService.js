@@ -1,6 +1,6 @@
 /**
  * Servicio de IA para BortexIA
- * Soporta Google Gemini (con Google Search Grounding / Búsqueda web nativa y streaming)
+ * Soporta Google Gemini (con Google Search Grounding, Visión y streaming)
  * y Groq Cloud (ultra velocidad Llama 3 / DeepSeek R1).
  */
 
@@ -21,6 +21,29 @@ export async function fetchGeminiModels(apiKey) {
   }
 }
 
+export function isImageGenerationRequest(text) {
+  if (!text) return false;
+  const t = text.trim().toLowerCase();
+  return (
+    t.startsWith('/image') ||
+    t.startsWith('genera una imagen') ||
+    t.startsWith('crea una imagen') ||
+    t.startsWith('dibuja una imagen') ||
+    t.startsWith('generar una imagen')
+  );
+}
+
+export function generateImageUrl(prompt) {
+  const cleanPrompt = prompt
+    .replace(/^\/image/i, '')
+    .replace(/^genera una imagen de/i, '')
+    .replace(/^crea una imagen de/i, '')
+    .replace(/^dibuja una imagen de/i, '')
+    .trim();
+  const seed = Math.floor(Math.random() * 1000000);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+}
+
 export async function streamChatCompletion({
   provider = 'gemini',
   apiKey,
@@ -32,6 +55,15 @@ export async function streamChatCompletion({
   onChunk,
   onSources
 }) {
+  const lastMsg = messages[messages.length - 1];
+  
+  // Si es un pedido directo de generación de imagen (100% Gratis sin API Key)
+  if (lastMsg && isImageGenerationRequest(lastMsg.content)) {
+    const imgUrl = generateImageUrl(lastMsg.content);
+    onChunk(`¡Aquí tienes la imagen que me pediste!\n\n![${lastMsg.content}](${imgUrl})\n\n*(Generada con modelo Flux vía Pollinations.ai)*`);
+    return { sources: [] };
+  }
+
   if (!apiKey) {
     throw new Error('No se ha configurado ninguna API Key. Ve a Ajustes para ingresar tu clave gratuita.');
   }
@@ -69,8 +101,6 @@ async function streamGeminiWithFallback(params) {
       lastError = err;
       const errMsg = err.message || '';
 
-      // Si Google sugiere explícitamente un modelo en el mensaje de error:
-      // ej: "Please update your code to use models/gemini-3.8-flash"
       const match = errMsg.match(/use models\/([a-zA-Z0-9_.-]+)/i);
       if (match && match[1] && match[1] !== candidateModel) {
         const suggestedModel = match[1];
@@ -82,7 +112,6 @@ async function streamGeminiWithFallback(params) {
         }
       }
 
-      // Si es error 404 de modelo no soportado / no encontrado
       if (errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('404') || errMsg.includes('no longer available')) {
         console.warn(`Modelo ${candidateModel} no disponible, intentando con alternativa...`);
         continue;
@@ -96,15 +125,29 @@ async function streamGeminiWithFallback(params) {
 }
 
 async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources }) {
-  // Limpiar prefijo si viniera con "models/"
   const cleanModel = model.replace(/^models\//, '');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
-  // Formatear mensajes para Gemini API
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
+  // Formatear mensajes para Gemini API con soporte multimodal (texto + imágenes adjuntas)
+  const contents = messages.map(m => {
+    const parts = [];
+    if (m.image?.dataUrl) {
+      const base64Data = m.image.dataUrl.split(',')[1];
+      parts.push({
+        inlineData: {
+          mimeType: m.image.mimeType || 'image/jpeg',
+          data: base64Data
+        }
+      });
+    }
+    if (m.content) {
+      parts.push({ text: m.content });
+    }
+    return {
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts
+    };
+  });
 
   const payload = {
     contents,
@@ -121,7 +164,6 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
   }
 
   if (webSearch) {
-    // Activa la búsqueda en Google nativa
     payload.tools = [{ googleSearch: {} }];
   }
 
@@ -167,13 +209,11 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
         const candidate = json.candidates?.[0];
         if (!candidate) continue;
 
-        // Extraer texto
         const text = candidate.content?.parts?.[0]?.text;
         if (text) {
           onChunk(text);
         }
 
-        // Extraer fuentes de Grounding (búsqueda web)
         const groundingMetadata = candidate.groundingMetadata;
         if (groundingMetadata?.groundingChunks) {
           for (const chunk of groundingMetadata.groundingChunks) {
@@ -188,7 +228,7 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
             onSources(discoveredSources);
           }
         }
-      } catch (err) {
+      } catch {
         // Ignorar chunks mal formateados
       }
     }
@@ -226,7 +266,10 @@ async function streamGroq({ apiKey, model, messages, systemPrompt, signal, onChu
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const message = errorData?.error?.message || `Error de Groq API (${response.status}): ${response.statusText}`;
+    let message = errorData?.error?.message || `Error de Groq API (${response.status}): ${response.statusText}`;
+    if (response.status === 429) {
+      message = 'Límite de cuota temporal en Groq (Error 429). Espera unos segundos e intenta nuevamente.';
+    }
     throw new Error(message);
   }
 

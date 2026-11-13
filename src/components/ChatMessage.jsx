@@ -35,7 +35,23 @@ export default function ChatMessage({ message, isLast, isStreaming }) {
   if (isUser) {
     return (
       <div className="message-row user">
-        <div className="user-bubble">{message.content}</div>
+        <div className="user-bubble">
+          {message.image?.dataUrl && (
+            <div style={{ marginBottom: '8px' }}>
+              <img 
+                src={message.image.dataUrl} 
+                alt="Imagen adjunta" 
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '260px', 
+                  borderRadius: '10px', 
+                  display: 'block' 
+                }} 
+              />
+            </div>
+          )}
+          {message.content && <div>{message.content}</div>}
+        </div>
       </div>
     );
   }
@@ -73,6 +89,21 @@ export default function ChatMessage({ message, isLast, isStreaming }) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
+                img({ node, ...props }) {
+                  return (
+                    <img 
+                      {...props} 
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: '450px', 
+                        borderRadius: '12px', 
+                        margin: '12px 0', 
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        display: 'block'
+                      }} 
+                    />
+                  );
+                },
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   const codeString = String(children).replace(/\n$/, '');
@@ -104,4 +135,3 @@ export default function ChatMessage({ message, isLast, isStreaming }) {
     </div>
   );
 }
-
