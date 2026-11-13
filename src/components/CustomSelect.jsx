@@ -3,17 +3,34 @@ import { ChevronDown, Check } from 'lucide-react';
 
 export default function CustomSelect({ value, options, onChange, placeholder = 'Seleccionar...' }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const containerRef = useRef(null);
 
-  // Cerrar al hacer clic fuera
+  const closeDropdown = () => {
+    if (!isOpen) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setIsOpen(false);
+    }, 160);
+  };
+
+  const toggleDropdown = () => {
+    if (isOpen) {
+      closeDropdown();
+    } else {
+      setIsOpen(true);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') closeDropdown();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -22,28 +39,31 @@ export default function CustomSelect({ value, options, onChange, placeholder = '
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isOpen]);
 
   const selectedOption = options.find(opt => opt.value === value) || { label: value, value };
 
   const handleSelect = (val) => {
     onChange(val);
-    setIsOpen(false);
+    closeDropdown();
   };
 
   return (
     <div className="custom-select-container" ref={containerRef}>
       <button
         type="button"
-        className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        className={`custom-select-trigger ${isOpen && !isClosing ? 'open' : ''}`}
+        onClick={toggleDropdown}
       >
         <span className="custom-select-label">{selectedOption.label || placeholder}</span>
-        <ChevronDown size={15} className={`custom-select-arrow ${isOpen ? 'rotated' : ''}`} />
+        <ChevronDown 
+          size={15} 
+          className={`custom-select-arrow ${isOpen && !isClosing ? 'rotated' : ''}`} 
+        />
       </button>
 
-      {isOpen && (
-        <div className="custom-select-dropdown">
+      {(isOpen || isClosing) && (
+        <div className={`custom-select-dropdown ${isClosing ? 'closing' : 'opening'}`}>
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -62,4 +82,3 @@ export default function CustomSelect({ value, options, onChange, placeholder = '
     </div>
   );
 }
-

@@ -165,20 +165,21 @@ export default function Sidebar({
   };
 
   return (
-    <aside className={`sidebar ${isOpen ? '' : 'closed'}`}>
-      <div className="sidebar-header">
-        <div className="brand-title">
-          <img src="/logo/iconomain.png" alt="BortexIA" className="brand-logo" />
-          <span>BortexIA</span>
+    <aside className={`sidebar ${isOpen ? '' : 'closed'}`} aria-hidden={!isOpen}>
+      <div className="sidebar-inner">
+        <div className="sidebar-header">
+          <div className="brand-title">
+            <img src="/logo/iconomain.png" alt="BortexIA" className="brand-logo" />
+            <span>BortexIA</span>
+          </div>
+          <button 
+            className="icon-btn-subtle" 
+            onClick={onToggle}
+            title="Cerrar barra lateral"
+          >
+            <PanelLeftClose size={18} />
+          </button>
         </div>
-        <button 
-          className="icon-btn-subtle" 
-          onClick={onToggle}
-          title="Cerrar barra lateral"
-        >
-          <PanelLeftClose size={18} />
-        </button>
-      </div>
 
       <div style={{ padding: '0 12px' }}>
         <button className="new-chat-btn" onClick={onNewChat} style={{ margin: '12px 0 8px', width: '100%' }}>
@@ -251,6 +252,7 @@ export default function Sidebar({
           </button>
         </div>
       </div>
-    </aside>
-  );
+    </div>
+  </aside>
+);
 }

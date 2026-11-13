@@ -25,6 +25,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [dynamicModels, setDynamicModels] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelStatus, setModelStatus] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -39,7 +40,15 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     }
   }, [formData.systemPrompt, isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !isClosing) return null;
+
+  const handleSmoothClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 220);
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -68,7 +77,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const handleSave = (e) => {
     e.preventDefault();
     onSave(formData);
-    onClose();
+    handleSmoothClose();
   };
 
   const currentGeminiOptions = dynamicModels.length > 0
@@ -76,11 +85,17 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     : DEFAULT_GEMINI_MODELS;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className={`modal-overlay ${isClosing ? 'closing' : 'opening'}`} 
+      onClick={handleSmoothClose}
+    >
+      <div 
+        className={`modal-card ${isClosing ? 'closing' : 'opening'}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2>Configuración de IA</h2>
-          <button className="icon-btn-subtle" onClick={onClose} title="Cerrar">
+          <button className="icon-btn-subtle" onClick={handleSmoothClose} title="Cerrar">
             <X size={18} />
           </button>
         </div>
@@ -217,7 +232,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
             <button type="submit" className="btn-primary">
               Guardar Cambios
             </button>
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <button type="button" className="btn-secondary" onClick={handleSmoothClose}>
               Cancelar
             </button>
           </div>

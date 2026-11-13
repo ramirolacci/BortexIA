@@ -69,16 +69,26 @@ html, body, #root {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, width 0.2s ease;
-  z-index: 20;
+  height: 100%;
   flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
+  z-index: 20;
 }
 
 .sidebar.closed {
-  transform: translateX(-100%);
   width: 0;
-  position: absolute;
+  border-right-color: transparent;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sidebar-inner {
+  width: 260px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -405,6 +415,18 @@ html, body, #root {
   display: flex;
   gap: 14px;
   width: 100%;
+  animation: gsapMessageIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes gsapMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-row.user {
@@ -770,17 +792,25 @@ html, body, #root {
   color: #fff;
 }
 
-/* Modal de Ajustes */
+/* Modal de Ajustes con animaciones fluidas GSAP */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   padding: 16px;
+}
+
+.modal-overlay.opening {
+  animation: gsapFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-overlay.closing {
+  animation: gsapFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .modal-card {
@@ -790,7 +820,48 @@ html, body, #root {
   max-width: 500px;
   width: 100%;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  transform-origin: center center;
+}
+
+.modal-card.opening {
+  animation: gsapModalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-card.closing {
+  animation: gsapModalOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes gsapModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.93) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes gsapModalOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}
+
+@keyframes gsapFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(5px); }
+}
+
+@keyframes gsapFadeOut {
+  from { opacity: 1; backdrop-filter: blur(5px); }
+  to { opacity: 0; backdrop-filter: blur(0px); }
 }
 
 .modal-header {
@@ -885,6 +956,37 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transform-origin: top center;
+}
+
+.custom-select-dropdown.opening {
+  animation: gsapDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.custom-select-dropdown.closing {
+  animation: gsapDropdownOut 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes gsapDropdownIn {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.85) translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes gsapDropdownOut {
+  0% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-4px);
+  }
 }
 
 .custom-select-option {
