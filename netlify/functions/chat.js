@@ -22,7 +22,7 @@ export default async (req) => {
     const { 
       messages = [], 
       webSearch = false, 
-      model = 'gemini-2.0-flash', 
+      model = 'gemini-2.5-flash', 
       systemPrompt = '' 
     } = body;
 
@@ -79,28 +79,57 @@ export default async (req) => {
       geminiPayload.tools = [{ googleSearch: {} }];
     }
 
-    // Modelos a probar en orden de prioridad para evitar errores de cuota 429 o 404
-    let cleanRequested = (model || '').replace(/^models\//, '').trim();
-    if (!cleanRequested || cleanRequested.includes('3.8')) {
-      cleanRequested = 'gemini-2.0-flash';
-    }
-
-    const candidateGeminiModels = [
-      cleanRequested,
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-8b',
-      'gemini-2.0-flash-lite-preview-02-05',
-      'gemini-1.5-pro'
-    ];
-    const uniqueGeminiModels = [...new Set(candidateGeminiModels)];
-
     let lastGeminiError = '';
     let lastGeminiStatus = 500;
 
-    // Intentar con Google Gemini si hay clave configurada
+    // 2. Intentar con Google Gemini si hay clave
     if (geminiApiKey) {
-      for (const candModel of uniqueGeminiModels) {
+      let candidateModels = [];
+
+      // Paso clave: Consultar ModelService.ListModels para saber qué modelos exactos tiene activos esta clave
+      try {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const available = (listData.models || [])
+            .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+            .map(m => m.name.replace(/^models\//, ''));
+
+          if (available.length > 0) {
+            const cleanReq = (model || '').replace(/^models\//, '').trim();
+            // Ordenar: primero el pedido si está disponible, luego los Flash, luego el resto
+            const prioritized = [
+              available.find(m => m === cleanReq),
+              ...available.filter(m => m.includes('flash') && m !== cleanReq),
+              ...available.filter(m => !m.includes('flash') && m !== cleanReq)
+            ].filter(Boolean);
+            candidateModels = [...new Set(prioritized)];
+          }
+        } else {
+          const listErr = await listRes.json().catch(() => ({}));
+          lastGeminiStatus = listRes.status;
+          lastGeminiError = listErr?.error?.message || `Error HTTP ${listRes.status} al validar modelos con Google API`;
+        }
+      } catch (listErr) {
+        // Fallback si la consulta de lista falla por red
+      }
+
+      // Si ListModels no arrojó lista, usar lista predeterminada con los modelos reales de Google
+      if (candidateModels.length === 0) {
+        const cleanReq = (model || '').replace(/^models\//, '').trim();
+        candidateModels = [
+          cleanReq || 'gemini-2.5-flash',
+          'gemini-2.5-flash',
+          'gemini-flash-latest',
+          'gemini-2.5-flash-lite',
+          'gemini-flash-lite-latest',
+          'gemini-3.8-flash',
+          'gemini-2.5-pro'
+        ];
+      }
+
+      // Probar los modelos disponibles
+      for (const candModel of candidateModels) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${candModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
           const geminiRes = await fetch(url, {
@@ -124,12 +153,12 @@ export default async (req) => {
           const errData = await geminiRes.json().catch(() => ({}));
           lastGeminiError = errData?.error?.message || `Error HTTP ${geminiRes.status} en modelo ${candModel}`;
 
-          // Si el error es 404 (modelo inexistente) o 429 (cuota de ese modelo superada), probamos el siguiente
+          // Si el error es 404 o 429, probamos el siguiente modelo
           if (geminiRes.status === 404 || geminiRes.status === 429 || geminiRes.status === 400) {
             continue;
           }
 
-          // Si es un error de autenticación (clave inválida), no tiene sentido probar más modelos
+          // Si es 401/403 (clave rechazada), no tiene sentido continuar
           if (geminiRes.status === 401 || geminiRes.status === 403) {
             break;
           }
@@ -139,7 +168,7 @@ export default async (req) => {
       }
     }
 
-    // 2. Fallback automático a Groq si Gemini falló o superó cuota (429) y existe GROQ_API_KEY
+    // 3. Fallback automático a Groq si Gemini falló o superó cuota (429/404) y existe GROQ_API_KEY
     if (groqApiKey) {
       try {
         const groqMessages = [];
@@ -175,14 +204,16 @@ export default async (req) => {
           });
         }
       } catch {
-        // Fallback no disponible, continuar al error
+        // Fallback no disponible
       }
     }
 
-    // 3. Si todo falló, retornar mensaje claro y descriptivo
+    // 4. Diagnóstico claro y amigable
     let userMsg = lastGeminiError || 'No se pudo conectar con el servicio de IA.';
-    if (lastGeminiStatus === 429) {
-      userMsg = `Límite de cuota excedido en Google AI Studio (Error 429): ${lastGeminiError || 'Quota exceeded'}. Si tu cuenta de Google no tiene tarjeta/facturación vinculada, Google limita fuertemente las peticiones gratuitas por minuto/día. Puedes agregar una GROQ_API_KEY gratuita en Netlify como respaldo ultra veloz.`;
+    if (lastGeminiStatus === 404) {
+      userMsg = `Google reportó que los modelos no están disponibles para esta API Key (Error 404): ${lastGeminiError}. Esto ocurre comúnmente si la clave fue generada en un proyecto de Google Cloud que no tiene habilitada la "Generative Language API", o si tiene restricciones de API. Verifica tu clave en https://aistudio.google.com/app/apikey (haz clic en 'Create API Key in new project').`;
+    } else if (lastGeminiStatus === 429) {
+      userMsg = `Límite de cuota alcanzado en Google AI Studio (Error 429): ${lastGeminiError}. Puedes agregar una GROQ_API_KEY gratuita en Netlify como respaldo ultra rápido.`;
     }
 
     return new Response(JSON.stringify({ error: userMsg }), {

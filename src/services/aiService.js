@@ -47,7 +47,7 @@ export function generateImageUrl(prompt) {
 export async function streamChatCompletion({
   provider = 'gemini',
   apiKey,
-  model = 'gemini-2.0-flash',
+  model = 'gemini-2.5-flash',
   messages = [],
   webSearch = false,
   systemPrompt = '',
@@ -89,7 +89,7 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || 'gemini-2.0-flash',
+      model: model || 'gemini-2.5-flash',
       messages,
       webSearch,
       systemPrompt
@@ -159,17 +159,18 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
 
 async function streamGeminiWithFallback(params) {
   let requestedModel = (params.model || '').replace(/^models\//, '');
-  if (!requestedModel || requestedModel.includes('3.8')) {
-    requestedModel = 'gemini-2.0-flash';
+  if (!requestedModel) {
+    requestedModel = 'gemini-2.5-flash';
   }
 
   const modelCandidates = [
     requestedModel,
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-2.0-flash-lite-preview-02-05',
-    'gemini-1.5-pro'
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.8-flash',
+    'gemini-2.5-pro'
   ].filter(Boolean);
 
   const uniqueModels = [...new Set(modelCandidates)];
