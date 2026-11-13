@@ -1,0 +1,20 @@
+[build]
+  command = "pnpm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Redirección amigable para la función de chat
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+# Redirección SPA para React Router / Vite
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

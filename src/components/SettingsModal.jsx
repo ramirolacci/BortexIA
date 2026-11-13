@@ -122,21 +122,20 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Key size={14} />
-                  <span>Gemini API Key</span>
+                  <span>Gemini API Key (Opcional)</span>
                 </label>
                 <input
                   type="password"
                   className="form-input"
-                  placeholder="AIzaSy..."
+                  placeholder="Opcional: BortexIA ya incluye conexión por defecto..."
                   value={formData.geminiKey || ''}
                   onChange={(e) => handleChange('geminiKey', e.target.value)}
                 />
                 <span className="form-helper">
-                  Consigue tu API Key 100% gratis en{' '}
+                  BortexIA ya responde al público por defecto. Si deseas usar tu propia cuota personal sin límites compartidos, puedes ingresar tu clave gratuita de{' '}
                   <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
                     Google AI Studio <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
-                  </a>{' '}
-                  (Hasta 1,500 consultas por día sin poner tarjeta).
+                  </a>.
                 </span>
               </div>
 

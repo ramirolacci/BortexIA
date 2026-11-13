@@ -1,7 +1,7 @@
 /**
  * Servicio de IA para BortexIA
- * Soporta Google Gemini (con Google Search Grounding, Visión y streaming)
- * y Groq Cloud (ultra velocidad Llama 3 / DeepSeek R1).
+ * Soporta modo Cloud Público (vía Netlify Functions con GEMINI_API_KEY oculta en servidor)
+ * y modo Clave Personal (Google Gemini o Groq directo).
  */
 
 export async function fetchGeminiModels(apiKey) {
@@ -57,29 +57,105 @@ export async function streamChatCompletion({
 }) {
   const lastMsg = messages[messages.length - 1];
   
-  // Si es un pedido directo de generación de imagen (100% Gratis sin API Key)
+  // 1. Pedido de generación gráfica: 100% Gratis sin ninguna API Key
   if (lastMsg && isImageGenerationRequest(lastMsg.content)) {
     const imgUrl = generateImageUrl(lastMsg.content);
     onChunk(`¡Aquí tienes la imagen que me pediste!\n\n![${lastMsg.content}](${imgUrl})\n\n*(Generada con modelo Flux vía Pollinations.ai)*`);
     return { sources: [] };
   }
 
-  if (!apiKey) {
-    throw new Error('No se ha configurado ninguna API Key. Ve a Ajustes para ingresar tu clave gratuita.');
+  // 2. Modo Groq (requiere su propia API Key de Groq)
+  if (provider === 'groq') {
+    if (!apiKey) {
+      throw new Error('Para usar Groq Cloud necesitas ingresar tu clave gratuita en Ajustes.');
+    }
+    return streamGroq({ apiKey, model, messages, systemPrompt, signal, onChunk });
   }
 
-  if (provider === 'gemini') {
+  // 3. Modo Google Gemini:
+  // Si el usuario tiene su propia clave personal en Ajustes, la usamos directo
+  if (apiKey && apiKey.trim()) {
     return streamGeminiWithFallback({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources });
-  } else if (provider === 'groq') {
-    return streamGroq({ apiKey, model, messages, systemPrompt, signal, onChunk });
-  } else {
-    throw new Error(`Proveedor ${provider} no soportado`);
   }
+
+  // Si no tiene clave (usuario común), usamos el backend serverless de Netlify (/api/chat)
+  return streamNetlifyBackend({ model, messages, webSearch, systemPrompt, signal, onChunk, onSources });
+}
+
+async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, signal, onChunk, onSources }) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: model || 'gemini-3.8-flash',
+      messages,
+      webSearch,
+      systemPrompt
+    }),
+    signal
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Error del servidor (${response.status})`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  const discoveredSources = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+      const dataStr = trimmed.slice(6);
+      if (dataStr === '[DONE]') continue;
+
+      try {
+        const json = JSON.parse(dataStr);
+        const candidate = json.candidates?.[0];
+        if (!candidate) continue;
+
+        const text = candidate.content?.parts?.[0]?.text;
+        if (text) {
+          onChunk(text);
+        }
+
+        const groundingMetadata = candidate.groundingMetadata;
+        if (groundingMetadata?.groundingChunks) {
+          for (const chunk of groundingMetadata.groundingChunks) {
+            if (chunk.web?.uri && !discoveredSources.some(s => s.url === chunk.web.uri)) {
+              discoveredSources.push({
+                title: chunk.web.title || 'Fuente web',
+                url: chunk.web.uri
+              });
+            }
+          }
+          if (onSources && discoveredSources.length > 0) {
+            onSources(discoveredSources);
+          }
+        }
+      } catch {
+        // Ignorar
+      }
+    }
+  }
+
+  return { sources: discoveredSources };
 }
 
 async function streamGeminiWithFallback(params) {
   let requestedModel = params.model;
-  // Reemplazar versiones viejas que Google ya deprecó
   if (!requestedModel || requestedModel.includes('1.5') || requestedModel.includes('2.0') || requestedModel.includes('2.5')) {
     requestedModel = 'gemini-3.8-flash';
   }
@@ -128,7 +204,6 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
   const cleanModel = model.replace(/^models\//, '');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
-  // Formatear mensajes para Gemini API con soporte multimodal (texto + imágenes adjuntas)
   const contents = messages.map(m => {
     const parts = [];
     if (m.image?.dataUrl) {

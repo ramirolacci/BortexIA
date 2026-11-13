@@ -151,8 +151,9 @@ export default function App() {
                               textToSend.toLowerCase().startsWith('crea una imagen') ||
                               textToSend.toLowerCase().startsWith('/image');
 
-    if (!currentApiKey && !isImageGeneration) {
-      setErrorBanner('Configura tu API Key gratuita en Ajustes para comenzar.');
+    // Solo exigimos clave al usuario si seleccionó Groq (Gemini usa el backend por defecto)
+    if (settings.provider === 'groq' && !currentApiKey && !isImageGeneration) {
+      setErrorBanner('Para usar Groq Cloud necesitas configurar tu API Key gratuita en Ajustes.');
       setIsSettingsOpen(true);
       return;
     }
