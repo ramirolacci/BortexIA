@@ -52,7 +52,8 @@ export default function Sidebar({
   onRenameChat,
   onClearAllChats,
   onOpenSettings,
-  onExport
+  onExport,
+  isMobile = false
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -164,8 +165,8 @@ export default function Sidebar({
     );
   };
 
-  // Modo cerrado / compacto: solo logo del cerebro, +, tuerca y descarga
-  if (!isOpen) {
+  // Solo en Desktop cuando está cerrado: modo compacto de 60px
+  if (!isMobile && !isOpen) {
     return (
       <aside className="sidebar collapsed">
         <div className="sidebar-collapsed-content">
@@ -213,9 +214,9 @@ export default function Sidebar({
     );
   }
 
-  // Modo expandido: 260px completo
+  // En Desktop abierto (260px) o en Mobile Drawer
   return (
-    <aside className="sidebar expanded">
+    <aside className={`sidebar expanded ${isMobile ? 'mobile-drawer' : ''} ${isMobile && !isOpen ? 'mobile-hidden' : ''}`}>
       <div className="sidebar-inner">
         <div className="sidebar-header">
           <div className="brand-title">

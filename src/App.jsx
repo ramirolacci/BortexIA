@@ -12,7 +12,7 @@ import {
   saveSettings 
 } from './services/storage';
 import { streamChatCompletion } from './services/aiService';
-import { PanelLeft, AlertCircle, ChevronDown, Sparkles } from 'lucide-react';
+import { AlertCircle, Menu, Plus } from 'lucide-react';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
@@ -41,7 +41,8 @@ export default function App() {
   const [chats, setChats] = useState(() => getChats());
   const [currentChatId, setCurrentChatId] = useState(() => getCurrentChatId());
   const [settings, setSettings] = useState(() => getSettings());
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
@@ -51,6 +52,19 @@ export default function App() {
 
   const abortControllerRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // Detección reactiva de tamaño de pantalla sin alterar Desktop
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile && !isSidebarOpen) {
+        // En desktop mantenemos el estado
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     saveChats(chats);
@@ -82,11 +96,17 @@ export default function App() {
     setInput('');
     setAttachedImage(null);
     setErrorBanner(null);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleSelectChat = (id) => {
     setCurrentChatId(id);
     setErrorBanner(null);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleDeleteChat = (id) => {
@@ -108,6 +128,9 @@ export default function App() {
       setChats([]);
       setCurrentChatId(null);
       setErrorBanner(null);
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
     }
   };
 
@@ -135,7 +158,6 @@ export default function App() {
                               textToSend.toLowerCase().startsWith('crea una imagen') ||
                               textToSend.toLowerCase().startsWith('/image');
 
-    // La generación de imágenes es gratuita y no requiere key, pero el resto sí
     if (!currentApiKey && !isImageGeneration) {
       setErrorBanner('Configura tu API Key gratuita en Ajustes para comenzar.');
       setIsSettingsOpen(true);
@@ -287,7 +309,7 @@ export default function App() {
   const activeModelName = getModelDisplayName(settings);
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobile ? 'is-mobile' : ''}`}>
       <Sidebar
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -300,20 +322,51 @@ export default function App() {
         onClearAllChats={handleClearAllChats}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExport}
+        isMobile={isMobile}
       />
+
+      {/* Backdrop oscuro para cerrar el Sidebar en Mobile */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="sidebar-backdrop-mobile"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <div className="main-content">
         <header className="top-bar">
           <div className="top-bar-left">
+            {/* Botón de Menú solo en Mobile */}
+            <button 
+              type="button"
+              className="icon-btn-subtle mobile-menu-btn" 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              title="Abrir menú"
+            >
+              <Menu size={20} />
+            </button>
+
             <span className="top-bar-title">
               {currentChat ? currentChat.title : 'BortexIA'}
             </span>
           </div>
 
-          {/* Nombre del modelo en TopBar como texto plano sin encapsular */}
-          <span className="top-bar-model-text">
-            {activeModelName}
-          </span>
+          <div className="top-bar-right">
+            {/* Botón rápido de Nuevo Chat en Mobile */}
+            <button
+              type="button"
+              className="icon-btn-subtle mobile-new-chat-btn"
+              onClick={handleNewChat}
+              title="Nuevo chat"
+            >
+              <Plus size={18} />
+            </button>
+
+            {/* Nombre del modelo en TopBar como texto plano sin encapsular */}
+            <span className="top-bar-model-text">
+              {activeModelName}
+            </span>
+          </div>
         </header>
 
         {errorBanner && (

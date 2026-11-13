@@ -1175,3 +1175,176 @@ html, body, #root {
   background-color: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.2);
 }
+
+/* ========================================================= */
+/* BOTONES EXCLUSIVOS DE MOBILE (Ocultos en Desktop)         */
+/* ========================================================= */
+.mobile-menu-btn {
+  display: none !important;
+}
+.mobile-new-chat-btn {
+  display: none !important;
+}
+.sidebar-backdrop-mobile {
+  display: none !important;
+}
+
+/* ========================================================= */
+/* VERSION MOBILE (Solo activa en pantallas <= 768px)        */
+/* La versión Desktop (>768px) no sufre ningún cambio        */
+/* ========================================================= */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+  .mobile-new-chat-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+
+  /* Drawer flotante tipo app nativa */
+  .sidebar.mobile-drawer {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px !important;
+    max-width: 82vw;
+    height: 100vh;
+    z-index: 100;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-subtle);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    transform: translateX(0);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    padding: 0;
+  }
+
+  .sidebar.mobile-drawer.mobile-hidden {
+    transform: translateX(-100%) !important;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  .sidebar-backdrop-mobile {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    animation: gsapFadeIn 0.22s ease forwards;
+  }
+
+  /* Top Bar en Mobile */
+  .top-bar {
+    height: 50px;
+    padding: 0 10px;
+  }
+
+  .top-bar-left {
+    gap: 8px;
+  }
+
+  .top-bar-title {
+    font-size: 0.88rem;
+    max-width: 170px;
+  }
+
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .top-bar-model-text {
+    font-size: 0.75rem;
+  }
+
+  /* Área de Mensajes en Mobile */
+  .messages-container {
+    padding: 10px 0 120px 0;
+  }
+
+  .messages-inner {
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  .user-bubble {
+    max-width: 88%;
+    padding: 8px 14px;
+    font-size: 0.92rem;
+  }
+
+  .assistant-body {
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .message-avatar {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Pantalla de inicio en Mobile */
+  .empty-state {
+    padding: 24px 12px;
+  }
+
+  .empty-state-logo {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 12px;
+  }
+
+  .empty-state h1 {
+    font-size: 1.25rem;
+  }
+
+  .empty-state p {
+    font-size: 0.84rem;
+    margin-bottom: 18px;
+  }
+
+  .suggestion-pills {
+    gap: 6px;
+  }
+
+  .suggestion-pill {
+    font-size: 0.76rem;
+    padding: 6px 12px;
+  }
+
+  /* Compositor en Mobile */
+  .composer-wrapper {
+    padding: 0 10px 10px;
+  }
+
+  .composer-box {
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .composer-textarea {
+    font-size: 0.9rem;
+  }
+
+  .icon-action-btn {
+    padding: 5px;
+  }
+
+  /* Modal de Ajustes en Mobile */
+  .modal-card {
+    padding: 18px;
+    max-width: 95vw;
+    max-height: 86vh;
+    overflow-y: auto;
+    border-radius: 14px;
+  }
+}
