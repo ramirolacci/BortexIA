@@ -172,12 +172,11 @@ export default function Composer({
 
             <button
               type="button"
-              className={`web-search-toggle ${webSearch ? 'active' : ''}`}
+              className={`icon-action-btn web-search-btn ${webSearch ? 'active' : ''}`}
               onClick={() => setWebSearch(!webSearch)}
-              title="Buscar información en la web en tiempo real"
+              title={webSearch ? 'Búsqueda Web activada' : 'Búsqueda Web desactivada'}
             >
-              <Globe size={13} />
-              <span>Búsqueda Web {webSearch ? 'ON' : 'OFF'}</span>
+              <Globe size={16} />
             </button>
           </div>
 

@@ -1,12 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, ExternalLink, Key, Cpu, RefreshCw } from 'lucide-react';
 import { fetchGeminiModels } from '../services/aiService';
+import CustomSelect from './CustomSelect';
+
+const PROVIDER_OPTIONS = [
+  { value: 'gemini', label: 'Google Gemini (Gratis + Búsqueda Web Google)' },
+  { value: 'groq', label: 'Groq Cloud (Gratis + Ultra Velocidad Llama 3.3)' }
+];
+
+const DEFAULT_GEMINI_MODELS = [
+  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Recomendado oficial por Google)' },
+  { value: 'gemini-3.8-pro', label: 'Gemini 3.8 Pro (Razonamiento avanzado)' },
+  { value: 'gemini-3.8-flash-latest', label: 'Gemini 3.8 Flash Latest' }
+];
+
+const GROQ_MODEL_OPTIONS = [
+  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile (Recomendado)' },
+  { value: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill 70B (Razonamiento)' },
+  { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (Ultra veloz)' }
+];
 
 export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [formData, setFormData] = useState(settings);
   const [dynamicModels, setDynamicModels] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelStatus, setModelStatus] = useState('');
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    setFormData(settings);
+  }, [settings, isOpen]);
+
+  // Auto-ajuste de altura hacia abajo para el textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 72)}px`;
+    }
+  }, [formData.systemPrompt, isOpen]);
 
   if (!isOpen) return null;
 
@@ -40,12 +71,16 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     onClose();
   };
 
+  const currentGeminiOptions = dynamicModels.length > 0
+    ? dynamicModels.map(m => ({ value: m, label: m }))
+    : DEFAULT_GEMINI_MODELS;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Configuración de IA</h2>
-          <button className="icon-btn-subtle" onClick={onClose}>
+          <button className="icon-btn-subtle" onClick={onClose} title="Cerrar">
             <X size={18} />
           </button>
         </div>
@@ -53,11 +88,10 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
         <form onSubmit={handleSave}>
           <div className="form-group">
             <label>Proveedor de IA</label>
-            <select
-              className="form-select"
+            <CustomSelect
               value={formData.provider}
-              onChange={(e) => {
-                const prov = e.target.value;
+              options={PROVIDER_OPTIONS}
+              onChange={(prov) => {
                 handleChange('provider', prov);
                 if (prov === 'gemini') {
                   handleChange('model', 'gemini-3.8-flash');
@@ -65,10 +99,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
                   handleChange('model', 'llama-3.3-70b-versatile');
                 }
               }}
-            >
-              <option value="gemini">Google Gemini (Gratis + Búsqueda Web Google)</option>
-              <option value="groq">Groq Cloud (Gratis + Ultra Velocidad Llama 3.3)</option>
-            </select>
+            />
           </div>
 
           {formData.provider === 'gemini' ? (
@@ -120,23 +151,12 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
                   </button>
                 </div>
 
-                <select
-                  className="form-select"
+                <CustomSelect
                   value={formData.model}
-                  onChange={(e) => handleChange('model', e.target.value)}
-                >
-                  {dynamicModels.length > 0 ? (
-                    dynamicModels.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recomendado oficial por Google)</option>
-                      <option value="gemini-3.8-pro">Gemini 3.8 Pro (Razonamiento avanzado)</option>
-                      <option value="gemini-3.8-flash-latest">Gemini 3.8 Flash Latest</option>
-                    </>
-                  )}
-                </select>
+                  options={currentGeminiOptions}
+                  onChange={(val) => handleChange('model', val)}
+                />
+
                 {modelStatus && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {modelStatus}
@@ -172,15 +192,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
                   <Cpu size={14} />
                   <span>Modelo Groq</span>
                 </label>
-                <select
-                  className="form-select"
+                <CustomSelect
                   value={formData.model}
-                  onChange={(e) => handleChange('model', e.target.value)}
-                >
-                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recomendado)</option>
-                  <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill 70B (Razonamiento)</option>
-                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra veloz)</option>
-                </select>
+                  options={GROQ_MODEL_OPTIONS}
+                  onChange={(val) => handleChange('model', val)}
+                />
               </div>
             </>
           )}
@@ -188,7 +204,8 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
           <div className="form-group">
             <label>Instrucciones de Sistema (System Prompt)</label>
             <textarea
-              className="form-input"
+              ref={textareaRef}
+              className="form-input form-textarea"
               rows={3}
               value={formData.systemPrompt}
               onChange={(e) => handleChange('systemPrompt', e.target.value)}
@@ -197,11 +214,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Cancelar
-            </button>
             <button type="submit" className="btn-primary">
               Guardar Cambios
+            </button>
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancelar
             </button>
           </div>
         </form>

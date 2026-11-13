@@ -319,17 +319,10 @@ export default function App() {
             </span>
           </div>
 
-          {/* Selector dinámico de modelo en TopBar */}
-          <button 
-            type="button"
-            className="model-pill-btn" 
-            onClick={() => setIsSettingsOpen(true)}
-            title="Cambiar modelo o configuración"
-          >
-            <span className="model-pill-dot" />
-            <span>{activeModelName}</span>
-            <ChevronDown size={13} style={{ opacity: 0.6 }} />
-          </button>
+          {/* Nombre del modelo en TopBar como texto plano sin encapsular */}
+          <span className="top-bar-model-text">
+            {activeModelName}
+          </span>
         </header>
 
         {errorBanner && (
