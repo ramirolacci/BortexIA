@@ -164,8 +164,58 @@ export default function Sidebar({
     );
   };
 
+  // Modo cerrado / compacto: solo logo del cerebro, +, tuerca y descarga
+  if (!isOpen) {
+    return (
+      <aside className="sidebar collapsed">
+        <div className="sidebar-collapsed-content">
+          <button 
+            type="button" 
+            className="collapsed-logo-btn" 
+            onClick={onToggle}
+            title="Expandir barra lateral"
+          >
+            <img src="/logo/iconomain.png" alt="BortexIA Logo" className="brand-logo" />
+          </button>
+
+          <button 
+            type="button" 
+            className="collapsed-action-btn new-chat" 
+            onClick={onNewChat}
+            title="Nuevo chat"
+          >
+            <Plus size={18} />
+          </button>
+
+          <div className="collapsed-spacer" />
+
+          <div className="collapsed-footer">
+            <button 
+              type="button" 
+              className="collapsed-action-btn" 
+              onClick={onOpenSettings}
+              title="Ajustes"
+            >
+              <Settings size={18} />
+            </button>
+
+            <button 
+              type="button" 
+              className="collapsed-action-btn" 
+              onClick={onExport}
+              title="Exportar conversación"
+            >
+              <Download size={18} />
+            </button>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  // Modo expandido: 260px completo
   return (
-    <aside className={`sidebar ${isOpen ? '' : 'closed'}`} aria-hidden={!isOpen}>
+    <aside className="sidebar expanded">
       <div className="sidebar-inner">
         <div className="sidebar-header">
           <div className="brand-title">
@@ -181,78 +231,78 @@ export default function Sidebar({
           </button>
         </div>
 
-      <div style={{ padding: '0 12px' }}>
-        <button className="new-chat-btn" onClick={onNewChat} style={{ margin: '12px 0 8px', width: '100%' }}>
-          <span>Nuevo chat</span>
-          <Plus size={16} />
-        </button>
+        <div style={{ padding: '0 12px' }}>
+          <button className="new-chat-btn" onClick={onNewChat} style={{ margin: '12px 0 8px', width: '100%' }}>
+            <span>Nuevo chat</span>
+            <Plus size={16} />
+          </button>
 
-        {chats.length > 3 && (
-          <div className="sidebar-search">
-            <Search size={14} style={{ opacity: 0.5 }} />
-            <input
-              type="text"
-              placeholder="Buscar en el historial..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button className="icon-btn-subtle" onClick={() => setSearchQuery('')}>
-                <X size={12} />
+          {chats.length > 3 && (
+            <div className="sidebar-search">
+              <Search size={14} style={{ opacity: 0.5 }} />
+              <input
+                type="text"
+                placeholder="Buscar en el historial..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="icon-btn-subtle" onClick={() => setSearchQuery('')}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="chat-history">
+          {chats.length === 0 ? (
+            <div className="empty-sidebar">
+              <MessageSquare size={24} style={{ opacity: 0.3, marginBottom: '8px' }} />
+              <span>Aún no tienes conversaciones</span>
+              <small>Tus chats se guardarán aquí automáticamente.</small>
+            </div>
+          ) : filteredChats.length === 0 ? (
+            <div className="empty-sidebar">
+              <span>No se encontraron resultados</span>
+            </div>
+          ) : (
+            <>
+              {renderChatGroup('Hoy', grouped.today)}
+              {renderChatGroup('Ayer', grouped.yesterday)}
+              {renderChatGroup('Últimos 7 días', grouped.lastWeek)}
+              {renderChatGroup('Anteriores', grouped.older)}
+            </>
+          )}
+        </div>
+
+        <div className="sidebar-footer">
+          <button className="sidebar-footer-btn" onClick={onOpenSettings} title="Configuración">
+            <Settings size={16} />
+            <span>Ajustes</span>
+          </button>
+
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {chats.length > 0 && (
+              <button 
+                className="sidebar-footer-btn" 
+                onClick={onClearAllChats} 
+                title="Borrar todo el historial"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <Trash2 size={15} />
               </button>
             )}
-          </div>
-        )}
-      </div>
-
-      <div className="chat-history">
-        {chats.length === 0 ? (
-          <div className="empty-sidebar">
-            <MessageSquare size={24} style={{ opacity: 0.3, marginBottom: '8px' }} />
-            <span>Aún no tienes conversaciones</span>
-            <small>Tus chats se guardarán aquí automáticamente.</small>
-          </div>
-        ) : filteredChats.length === 0 ? (
-          <div className="empty-sidebar">
-            <span>No se encontraron resultados</span>
-          </div>
-        ) : (
-          <>
-            {renderChatGroup('Hoy', grouped.today)}
-            {renderChatGroup('Ayer', grouped.yesterday)}
-            {renderChatGroup('Últimos 7 días', grouped.lastWeek)}
-            {renderChatGroup('Anteriores', grouped.older)}
-          </>
-        )}
-      </div>
-
-      <div className="sidebar-footer">
-        <button className="sidebar-footer-btn" onClick={onOpenSettings} title="Configuración">
-          <Settings size={16} />
-          <span>Ajustes</span>
-        </button>
-
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {chats.length > 0 && (
             <button 
               className="sidebar-footer-btn" 
-              onClick={onClearAllChats} 
-              title="Borrar todo el historial"
-              style={{ color: 'var(--text-muted)' }}
+              onClick={onExport} 
+              title="Exportar conversación en Markdown"
             >
-              <Trash2 size={15} />
+              <Download size={16} />
             </button>
-          )}
-          <button 
-            className="sidebar-footer-btn" 
-            onClick={onExport} 
-            title="Exportar conversación en Markdown"
-          >
-            <Download size={16} />
-          </button>
+          </div>
         </div>
       </div>
-    </div>
-  </aside>
-);
+    </aside>
+  );
 }

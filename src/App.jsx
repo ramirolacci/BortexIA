@@ -305,15 +305,6 @@ export default function App() {
       <div className="main-content">
         <header className="top-bar">
           <div className="top-bar-left">
-            {!isSidebarOpen && (
-              <button 
-                className="icon-btn-subtle" 
-                onClick={() => setIsSidebarOpen(true)}
-                title="Abrir historial"
-              >
-                <PanelLeft size={18} />
-              </button>
-            )}
             <span className="top-bar-title">
               {currentChat ? currentChat.title : 'BortexIA'}
             </span>
