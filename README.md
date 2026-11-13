@@ -1,61 +1,42 @@
-<div align="center">
+# BortexIA 2.0
 
-  <img src="logo/iconomain.png" alt="BortexIA Logo" width="120" style="border-radius: 50%; filter: drop-shadow(0 0 15px rgba(10, 132, 255, 0.6));">
-
-  # BortexIA
-
-  ### *Pregunta cualquier cosa. Yo me encargo del resto.*
-
-  **Una experiencia de Inteligencia Artificial 100% local, privada y ejecutada directamente en tu navegador.**
-
-  ---
-
-  [![Privacy First](https://img.shields.io/badge/Privacidad-100%25_Local-00E676?style=for-the-badge&logo=shield&logoColor=white)](#)
-  [![WebGPU Accelerated](https://img.shields.io/badge/Aceleraci%C3%B3n-WebGPU-007ACC?style=for-the-badge&logo=googlechrome&logoColor=white)](#)
-  [![Powered by WebLLM](https://img.shields.io/badge/Motor-WebLLM-8A2BE2?style=for-the-badge)](#)
-  [![Offline Ready](https://img.shields.io/badge/Ejecuci%C3%B3n-Client--Side-FF9100?style=for-the-badge)](#)
-
-  ---
-
-</div>
-
-## 📸 Vista Previa
-
-> Descubre una interfaz futurista, fluida e intuitiva diseñada con un fondo animado interactivo de partículas que reacciona a tu navegación.
-
-<div align="center">
-  <img src="assets/Screenshot_1.png" alt="Vista Previa de BortexIA" width="100%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-</div>
+> Asistente de Inteligencia Artificial moderno, minimalista y ligero. Desarrollado con **React**, **Vite** y potenciado por modelos en la nube de nivel profesional con tiers 100% gratuitos.
 
 ---
 
-## ✨ Destacados & Capacidades
+## ⚡ Principales Características
 
-BortexIA redefine la interacción con modelos de lenguaje de gran tamaño (LLMs) eliminando la necesidad de servidores intermediarios y suscripciones externas.
-
-| Función | Descripción |
-| :--- | :--- |
-| 🤖 **IA 100% en el Navegador** | Ejecuta modelos LLM potentes aprovechando la potencia gráfica de tu GPU local mediante **WebGPU** y `@mlc-ai/web-llm`. |
-| 🔒 **Privacidad Total** | Toda la información y el procesamiento se mantienen dentro de tu dispositivo. Ningún mensaje se transmite a servidores terceros. |
-| 🌌 **Interfaz Galáctica Interactiva** | Fondo en tiempo real con dinámicas de partículas en HTML5 Canvas y un diseño *Glassmorphism* elegante y moderno. |
-| 💬 **Gestión de Chats & Historial** | Administra múltiples sesiones de chat con guardado automático y persistente en `localStorage`. |
-| 📤 **Exportación Multiformato** | Descarga tus conversaciones completas en archivos **Markdown (.md)** o **JSON** estructurados con un solo clic. |
-| ⚡ **Desempeño Asíncrono** | Utiliza *Web Workers* en segundo plano para garantizar una interfaz fluida sin interrupciones ni bloqueos de pantalla. |
-| 🛠️ **Panel de Herramientas Completo** | Herramientas integradas para búsqueda de conceptos, reformulación de ideas, gestión de fuentes y soporte de voz. |
+- **Diseño Minimalista "Menos es Más":** Interfaz sobria inspirada en ChatGPT y Claude, eliminando distracciones visuales pesadas. Cero uso excesivo de GPU o congelamientos.
+- **Inferencia Instantánea en la Nube:** Dejó atrás la inferencia local pesada (WebLLM de 4 GB) para responder al instante en cualquier navegador o dispositivo.
+- **Modo Búsqueda Web (Estilo Perplexity):** Capacidad de consultar información en internet en tiempo real y citar las fuentes y enlaces originales utilizando Google Search Grounding.
+- **100% Gratuito:** Diseñado para funcionar con los tiers gratuitos permanentes de **Google Gemini API** (hasta 1,500 peticiones diarias gratis sin tarjeta) o **Groq Cloud API** (velocidad de 300+ tokens/segundo).
+- **Streaming en Vivo:** Respuestas generadas token a token en tiempo real.
+- **Formato Markdown Completo:** Soporte para código fuente con botón para copiar, tablas, citas y listas.
+- **Historial Persistente y Exportación:** Guarda tus conversaciones en `localStorage` y expórtalas a archivos Markdown (.md).
 
 ---
 
-## 🛠️ Tecnologías de Vanguardia
+## 🛠️ Tecnologías
 
-- **Core Intelligence:** `@mlc-ai/web-llm` — Inferencia de modelos LLM acelerados por hardware directo en el cliente.
-- **Background Processing:** `Web Workers API` — Manejo del motor de inferencia desacoplado de la interfaz principal.
-- **Frontend Architecture:** Vanilla ES Modules, HTML5 Canvas API para renderizado de partículas en 60fps.
-- **Visual Design System:** Variables CSS3 avanzadas, efectos de desenfoque de fondo (*backdrop-filter*) y tipografía adaptativa.
+- **Frontend:** React 19, Vite, Lucide Icons, React Markdown, Remark GFM.
+- **Package Manager:** `pnpm`.
+- **Integración de IA:** Google Gemini API (Grounding Search + Streaming SSE) & Groq Cloud API.
 
 ---
 
-<div align="center">
+## 🚀 Inicio Rápido
 
-  <sub>Diseñado con pasión para llevar la Inteligencia Artificial Privada al siguiente nivel.</sub>
+### 1. Instalar dependencias
+```bash
+pnpm install
+```
 
-</div>
+### 2. Ejecutar en modo desarrollo
+```bash
+pnpm run dev
+```
+
+### 3. Obtener tu API Key Gratuita
+- **Google Gemini (Recomendado):** Obtén tu clave en [Google AI Studio](https://aistudio.google.com/app/apikey) sin tarjeta de crédito.
+- Abre **Ajustes** en la aplicación y pega tu clave. ¡Listo para usar!
+
