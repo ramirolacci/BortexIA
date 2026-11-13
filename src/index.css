@@ -399,6 +399,86 @@ html, body, #root {
   white-space: nowrap;
 }
 
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============================================================
+   MODO INCÓGNITO (Estilo Perplexity)
+   ============================================================ */
+.incognito-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.incognito-toggle-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.incognito-toggle-btn.active {
+  background: rgba(129, 140, 248, 0.16);
+  border-color: rgba(129, 140, 248, 0.35);
+  color: #a5b4fc;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
+}
+
+.top-bar-incognito-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #a5b4fc;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+.incognito-hero-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(129, 140, 248, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  color: #a5b4fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 0 28px rgba(99, 102, 241, 0.25);
+  animation: incognitoPulse 3s ease-in-out infinite;
+}
+
+@keyframes incognitoPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 32px rgba(99, 102, 241, 0.38);
+  }
+}
+
+.composer-box.is-incognito {
+  border: 1px dashed rgba(129, 140, 248, 0.45);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.12);
+}
+
+.composer-box.is-incognito:focus-within {
+  border: 1px dashed #818cf8;
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+}
+
 /* Nombre del modelo en TopBar como texto plano sin encapsular */
 .top-bar-model-text {
   font-size: 0.84rem;

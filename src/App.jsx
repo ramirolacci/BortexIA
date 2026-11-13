@@ -12,7 +12,7 @@ import {
   saveSettings 
 } from './services/storage';
 import { streamChatCompletion } from './services/aiService';
-import { AlertCircle, Menu, Plus } from 'lucide-react';
+import { AlertCircle, Menu, Plus, VenetianMask } from 'lucide-react';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
@@ -44,6 +44,8 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [webSearch, setWebSearch] = useState(() => settings.webSearchEnabled);
   const [errorBanner, setErrorBanner] = useState(null);
+  const [isIncognito, setIsIncognito] = useState(false);
+  const [incognitoMessages, setIncognitoMessages] = useState([]);
 
   const abortControllerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -69,7 +71,8 @@ export default function App() {
     saveCurrentChatId(currentChatId);
   }, [currentChatId]);
 
-  const currentChat = chats.find(c => c.id === currentChatId);
+  const currentChat = isIncognito ? null : chats.find(c => c.id === currentChatId);
+  const activeMessages = isIncognito ? incognitoMessages : (currentChat ? currentChat.messages : []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,9 +80,31 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [currentChat?.messages, isStreaming]);
+  }, [activeMessages, isStreaming]);
+
+  const handleToggleIncognito = () => {
+    setIsIncognito(prev => {
+      const next = !prev;
+      setIncognitoMessages([]);
+      setInput('');
+      setAttachedImage(null);
+      setErrorBanner(null);
+      return next;
+    });
+  };
 
   const handleNewChat = () => {
+    if (isIncognito) {
+      setIncognitoMessages([]);
+      setInput('');
+      setAttachedImage(null);
+      setErrorBanner(null);
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+      return;
+    }
+
     const newChat = {
       id: generateId(),
       title: 'Nuevo chat',
@@ -97,6 +122,10 @@ export default function App() {
   };
 
   const handleSelectChat = (id) => {
+    if (isIncognito) {
+      setIsIncognito(false);
+      setIncognitoMessages([]);
+    }
     setCurrentChatId(id);
     setErrorBanner(null);
     if (isMobile) {
@@ -164,6 +193,88 @@ export default function App() {
     setInput('');
     const sentImage = attachedImage;
     setAttachedImage(null);
+
+    // Modo Incógnito: flujo volátil en memoria sin tocar localStorage
+    if (isIncognito) {
+      const userMessage = {
+        id: generateId(),
+        role: 'user',
+        content: textToSend,
+        image: sentImage,
+        createdAt: Date.now()
+      };
+
+      const assistantMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        sources: [],
+        createdAt: Date.now()
+      };
+
+      const historyToSend = [...incognitoMessages, userMessage];
+      setIncognitoMessages([...historyToSend, assistantMessage]);
+      setIsStreaming(true);
+
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const conversationHistory = historyToSend.map(m => ({ 
+          role: m.role, 
+          content: m.content, 
+          image: m.image 
+        }));
+
+        await streamChatCompletion({
+          provider: settings.provider,
+          apiKey: currentApiKey,
+          model: settings.model,
+          messages: conversationHistory,
+          webSearch: webSearch && settings.provider === 'gemini',
+          systemPrompt: settings.systemPrompt,
+          signal: abortControllerRef.current.signal,
+          onChunk: (chunk) => {
+            setIncognitoMessages(prev => {
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last && last.role === 'assistant') {
+                last.content += chunk;
+              }
+              return copy;
+            });
+          },
+          onSources: (sources) => {
+            setIncognitoMessages(prev => {
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last && last.role === 'assistant') {
+                last.sources = sources;
+              }
+              return copy;
+            });
+          }
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          const errMsg = err.message || 'Ocurrió un error inesperado al consultar la IA.';
+          setErrorBanner(errMsg);
+          setIncognitoMessages(prev => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last && last.role === 'assistant') {
+              last.content = last.content 
+                ? `${last.content}\n\n⚠️ *${errMsg}*`
+                : `⚠️ *${errMsg}*`;
+            }
+            return copy;
+          });
+        }
+      } finally {
+        setIsStreaming(false);
+        abortControllerRef.current = null;
+      }
+      return;
+    }
 
     let activeChatId = currentChatId;
     let updatedChats = [...chats];
@@ -278,12 +389,15 @@ export default function App() {
   };
 
   const handleExport = () => {
-    if (!currentChat || currentChat.messages.length === 0) {
+    const exportMessages = isIncognito ? incognitoMessages : (currentChat ? currentChat.messages : []);
+    const exportTitle = isIncognito ? 'Chat Incógnito' : (currentChat ? currentChat.title : 'Chat');
+
+    if (!exportMessages || exportMessages.length === 0) {
       alert('No hay mensajes para exportar en este chat.');
       return;
     }
 
-    const mdContent = `# ${currentChat.title}\n\n` + currentChat.messages.map(m => {
+    const mdContent = `# ${exportTitle}\n\n` + exportMessages.map(m => {
       const header = m.role === 'user' ? '### Tú' : '### BortexIA';
       let sourcesText = '';
       if (m.sources && m.sources.length) {
@@ -296,12 +410,12 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentChat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+    a.download = `${exportTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const hasMessages = currentChat && currentChat.messages.length > 0;
+  const hasMessages = activeMessages.length > 0;
   const activeModelName = getModelDisplayName(settings);
 
   return (
@@ -348,6 +462,16 @@ export default function App() {
           </div>
 
           <div className="top-bar-right">
+            {/* Botón de Modo Incógnito (Estilo Perplexity) */}
+            <button
+              type="button"
+              className={`icon-btn-subtle incognito-toggle-btn ${isIncognito ? 'active' : ''}`}
+              onClick={handleToggleIncognito}
+              title={isIncognito ? 'Desactivar modo incógnito' : 'Activar modo incógnito'}
+            >
+              <VenetianMask size={18} />
+            </button>
+
             {/* Botón rápido de Nuevo Chat en Mobile */}
             <button
               type="button"
@@ -393,18 +517,30 @@ export default function App() {
         <main className="messages-container">
           {!hasMessages ? (
             <div className="empty-state">
-              <img src="/logo/iconomain.png" alt="BortexIA Logo" className="empty-state-logo" />
-              <h1>¿En qué te puedo ayudar hoy?</h1>
-              <p>Haz cualquier pregunta, pide ideas, crea imágenes o escribe código.</p>
+              {isIncognito ? (
+                <>
+                  <div className="incognito-hero-icon">
+                    <VenetianMask size={32} />
+                  </div>
+                  <h1>Estás en modo incógnito</h1>
+                  <p>Las preguntas y respuestas de esta sesión no se guardarán en tu historial y caducan al salir.</p>
+                </>
+              ) : (
+                <>
+                  <img src="/logo/iconomain.png" alt="BortexIA Logo" className="empty-state-logo" />
+                  <h1>¿En qué te puedo ayudar hoy?</h1>
+                  <p>Haz cualquier pregunta, pide ideas, crea imágenes o escribe código.</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="messages-inner">
-              {currentChat.messages.map((message, idx) => (
+              {activeMessages.map((message, idx) => (
                 <ChatMessage
                   key={message.id || idx}
                   message={message}
-                  isLast={idx === currentChat.messages.length - 1}
-                  isStreaming={isStreaming && idx === currentChat.messages.length - 1}
+                  isLast={idx === activeMessages.length - 1}
+                  isStreaming={isStreaming && idx === activeMessages.length - 1}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -423,6 +559,7 @@ export default function App() {
           attachedImage={attachedImage}
           setAttachedImage={setAttachedImage}
           disabled={false}
+          isIncognito={isIncognito}
         />
       </div>
 

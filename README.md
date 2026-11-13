@@ -33,6 +33,7 @@
 
 * ⚡ **Inferencia Ultrarrápida en la Nube:** Dejó atrás la inferencia local pesada (descargas de 4 GB y saturación de GPU) para responder en milisegundos con 0% de consumo gráfico en tu dispositivo.
 * 🌐 **Modo Búsqueda Web (Estilo Perplexity):** Interruptor con el ícono del mundo que activa **Google Search Grounding** para buscar en internet en tiempo real y citar las fuentes con enlaces clicables.
+* 🎭 **Modo Incógnito Privado:** Sesiones efímeras y 100% privadas en memoria volátil; ningún mensaje se guarda en el historial ni en el almacenamiento local del navegador al salir.
 * 🎨 **Generación de Imágenes 100% Gratuita:** Integra el modelo **Flux** (vía Pollinations.ai) para crear imágenes de alta calidad sin registros ni costos con solo pedir *"Genera una imagen de..."*.
 * 📎 **Visión Multimodal:** Sube capturas de pantalla o pégalas directamente desde el portapapeles con `Ctrl + V` para analizar errores, diagramas o fotos con IA.
 * 🎙️ **Dictado por Voz Nativo:** Dicta tus preguntas en español utilizando la Web Speech API del navegador en tiempo real.

@@ -124,16 +124,25 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
       try {
         const json = JSON.parse(dataStr);
         
-        // Soporte universal: Gemini chunks y OpenAI/Groq chunks
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text 
-                  || json.choices?.[0]?.delta?.content 
-                  || json.choices?.[0]?.text 
-                  || '';
+        // Soporte universal: Gemini chunks (filtrando thoughts) y OpenAI/Groq chunks
+        let text = '';
+        const candidate = json.candidates?.[0];
+        if (candidate?.content?.parts) {
+          for (const part of candidate.content.parts) {
+            // Ignorar pensamientos internos de razonamiento en inglés (CoT)
+            if (part.thought) continue;
+            if (part.text) {
+              text += part.text;
+            }
+          }
+        } else if (json.choices?.[0]) {
+          text = json.choices[0].delta?.content || json.choices[0].text || '';
+        }
+
         if (text) {
           onChunk(text);
         }
 
-        const candidate = json.candidates?.[0];
         const groundingMetadata = candidate?.groundingMetadata;
         if (groundingMetadata?.groundingChunks) {
           for (const chunk of groundingMetadata.groundingChunks) {
@@ -290,7 +299,16 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
         const candidate = json.candidates?.[0];
         if (!candidate) continue;
 
-        const text = candidate.content?.parts?.[0]?.text;
+        let text = '';
+        if (candidate.content?.parts) {
+          for (const part of candidate.content.parts) {
+            if (part.thought) continue;
+            if (part.text) {
+              text += part.text;
+            }
+          }
+        }
+
         if (text) {
           onChunk(text);
         }

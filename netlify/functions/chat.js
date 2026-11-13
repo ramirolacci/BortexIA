@@ -61,19 +61,20 @@ export default async (req) => {
       };
     });
 
+    const effectiveSystemPrompt = (systemPrompt && systemPrompt.trim())
+      ? systemPrompt
+      : 'Eres BortexIA, un asistente de inteligencia artificial útil, analítico, profesional y preciso. Responde SIEMPRE en español de forma completa, estructurada y en formato Markdown impecable.';
+
     const geminiPayload = {
       contents,
+      systemInstruction: {
+        parts: [{ text: effectiveSystemPrompt }]
+      },
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 4096
+        maxOutputTokens: 8192
       }
     };
-
-    if (systemPrompt) {
-      geminiPayload.systemInstruction = {
-        parts: [{ text: systemPrompt }]
-      };
-    }
 
     if (webSearch) {
       geminiPayload.tools = [{ googleSearch: {} }];

@@ -11,7 +11,8 @@ export default function Composer({
   setWebSearch,
   attachedImage,
   setAttachedImage,
-  disabled
+  disabled,
+  isIncognito = false
 }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -110,7 +111,7 @@ export default function Composer({
 
   return (
     <div className="composer-wrapper">
-      <div className="composer-box">
+      <div className={`composer-box ${isIncognito ? 'is-incognito' : ''}`}>
         {/* Previsualización de imagen adjunta */}
         {attachedImage && (
           <div className="attached-preview">
@@ -132,7 +133,7 @@ export default function Composer({
         <textarea
           ref={textareaRef}
           className="composer-textarea"
-          placeholder="Pregunta lo que sea o pega una imagen (Ctrl + V)..."
+          placeholder={isIncognito ? "Mensaje en modo incógnito (no se guardará)..." : "Pregunta lo que sea o pega una imagen (Ctrl + V)..."}
           rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
