@@ -54,7 +54,7 @@
 | **Diseño & Animaciones** | CSS3 Moderno, Variables CSS, Curvas Bezier estilo GSAP |
 | **Iconografía** | [Lucide React](https://lucide.dev/) |
 | **Renderizado Markdown** | `react-markdown` + `remark-gfm` (código con botón copiar, tablas y citas) |
-| **Motores de IA** | [Google Gemini API](https://aistudio.google.com/) (Flash 3.8 / 2.0 con Grounding) & [Groq Cloud](https://console.groq.com/) (Llama 3.3 70B / DeepSeek R1) |
+| **Motores de IA** | [Google Gemini API](https://aistudio.google.com/) (Gemini 2.0 Flash / 1.5 con Grounding) & [Groq Cloud](https://console.groq.com/) (Llama 3.3 70B / DeepSeek R1) |
 | **Generación Visual** | [Pollinations.ai](https://pollinations.ai/) (Flux / Stable Diffusion) |
 
 ---

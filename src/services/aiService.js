@@ -47,7 +47,7 @@ export function generateImageUrl(prompt) {
 export async function streamChatCompletion({
   provider = 'gemini',
   apiKey,
-  model = 'gemini-3.8-flash',
+  model = 'gemini-2.0-flash',
   messages = [],
   webSearch = false,
   systemPrompt = '',
@@ -89,7 +89,7 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || 'gemini-3.8-flash',
+      model: model || 'gemini-2.0-flash',
       messages,
       webSearch,
       systemPrompt
@@ -123,15 +123,18 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
 
       try {
         const json = JSON.parse(dataStr);
-        const candidate = json.candidates?.[0];
-        if (!candidate) continue;
-
-        const text = candidate.content?.parts?.[0]?.text;
+        
+        // Soporte universal: Gemini chunks y OpenAI/Groq chunks
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text 
+                  || json.choices?.[0]?.delta?.content 
+                  || json.choices?.[0]?.text 
+                  || '';
         if (text) {
           onChunk(text);
         }
 
-        const groundingMetadata = candidate.groundingMetadata;
+        const candidate = json.candidates?.[0];
+        const groundingMetadata = candidate?.groundingMetadata;
         if (groundingMetadata?.groundingChunks) {
           for (const chunk of groundingMetadata.groundingChunks) {
             if (chunk.web?.uri && !discoveredSources.some(s => s.url === chunk.web.uri)) {
@@ -155,16 +158,18 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
 }
 
 async function streamGeminiWithFallback(params) {
-  let requestedModel = params.model;
-  if (!requestedModel || requestedModel.includes('1.5') || requestedModel.includes('2.0') || requestedModel.includes('2.5')) {
-    requestedModel = 'gemini-3.8-flash';
+  let requestedModel = (params.model || '').replace(/^models\//, '');
+  if (!requestedModel || requestedModel.includes('3.8')) {
+    requestedModel = 'gemini-2.0-flash';
   }
 
   const modelCandidates = [
     requestedModel,
-    'gemini-3.8-flash',
-    'gemini-3.8-pro',
-    'gemini-3.8-flash-latest'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-2.0-flash-lite-preview-02-05',
+    'gemini-1.5-pro'
   ].filter(Boolean);
 
   const uniqueModels = [...new Set(modelCandidates)];
@@ -188,8 +193,8 @@ async function streamGeminiWithFallback(params) {
         }
       }
 
-      if (errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('404') || errMsg.includes('no longer available')) {
-        console.warn(`Modelo ${candidateModel} no disponible, intentando con alternativa...`);
+      if (errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('404') || errMsg.includes('no longer available') || errMsg.includes('429')) {
+        console.warn(`Modelo ${candidateModel} no disponible (${errMsg}), intentando con alternativa...`);
         continue;
       }
 

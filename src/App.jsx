@@ -24,9 +24,10 @@ function getModelDisplayName(settings) {
     if (settings.model.includes('3.1')) return 'Llama 3.1 8B (Groq)';
     return 'Llama 3.3 70B (Groq)';
   }
-  if (settings.model.includes('3.8-pro')) return 'Gemini 3.8 Pro';
-  if (settings.model.includes('3.8')) return 'Gemini 3.8 Flash';
   if (settings.model.includes('2.0')) return 'Gemini 2.0 Flash';
+  if (settings.model.includes('8b')) return 'Gemini 1.5 Flash 8B';
+  if (settings.model.includes('1.5-pro')) return 'Gemini 1.5 Pro';
+  if (settings.model.includes('1.5')) return 'Gemini 1.5 Flash';
   return 'Google Gemini';
 }
 

@@ -6,7 +6,7 @@ export const defaultSettings = {
   provider: 'gemini', // 'gemini' | 'groq'
   geminiKey: '',
   groqKey: '',
-  model: 'gemini-3.8-flash',
+  model: 'gemini-2.0-flash',
   webSearchEnabled: true,
   systemPrompt: 'Eres BortexIA, un asistente de inteligencia artificial útil, preciso, analítico y conciso. Responde en español por defecto con formato Markdown claro.'
 };
@@ -17,9 +17,9 @@ export function getSettings() {
     if (!raw) return defaultSettings;
     const parsed = { ...defaultSettings, ...JSON.parse(raw) };
     
-    // Migración automática de modelos deprecados en localStorage
-    if (parsed.model === 'gemini-1.5-flash' || parsed.model === 'gemini-2.0-flash' || parsed.model === 'gemini-2.5-flash') {
-      parsed.model = 'gemini-3.8-flash';
+    // Normalización de modelos en localStorage
+    if (!parsed.model || parsed.model.includes('3.8') || parsed.model.includes('2.5')) {
+      parsed.model = 'gemini-2.0-flash';
       saveSettings(parsed);
     }
     

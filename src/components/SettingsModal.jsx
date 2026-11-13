@@ -9,9 +9,10 @@ const PROVIDER_OPTIONS = [
 ];
 
 const DEFAULT_GEMINI_MODELS = [
-  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Recomendado oficial por Google)' },
-  { value: 'gemini-3.8-pro', label: 'Gemini 3.8 Pro (Razonamiento avanzado)' },
-  { value: 'gemini-3.8-flash-latest', label: 'Gemini 3.8 Flash Latest' }
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Recomendado)' },
+  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Alta cuota)' },
+  { value: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash 8B (Ultra liviano)' },
+  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Razonamiento profundo)' }
 ];
 
 const GROQ_MODEL_OPTIONS = [
@@ -109,7 +110,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
               onChange={(prov) => {
                 handleChange('provider', prov);
                 if (prov === 'gemini') {
-                  handleChange('model', 'gemini-3.8-flash');
+                  handleChange('model', 'gemini-2.0-flash');
                 } else {
                   handleChange('model', 'llama-3.3-70b-versatile');
                 }
