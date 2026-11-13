@@ -18,13 +18,6 @@ function generateId() {
   return Math.random().toString(36).substring(2, 10);
 }
 
-const SUGGESTIONS = [
-  "Explícame cómo funciona la computación cuántica en lenguaje sencillo",
-  "Escribe un custom hook de React para debouncing de inputs",
-  "Genera una imagen de un astronauta en un bosque bioluminiscente",
-  "¿Cuáles son los avances más recientes en exploración espacial?"
-];
-
 function getModelDisplayName(settings) {
   if (settings.provider === 'groq') {
     if (settings.model.includes('deepseek')) return 'DeepSeek R1 (Groq)';
@@ -400,18 +393,6 @@ export default function App() {
               <img src="/logo/iconomain.png" alt="BortexIA Logo" className="empty-state-logo" />
               <h1>¿En qué te puedo ayudar hoy?</h1>
               <p>Haz cualquier pregunta, pide ideas, crea imágenes o escribe código.</p>
-
-              <div className="suggestion-pills">
-                {SUGGESTIONS.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    className="suggestion-pill"
-                    onClick={() => handleSend(suggestion)}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             <div className="messages-inner">
