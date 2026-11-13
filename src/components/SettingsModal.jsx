@@ -1,13 +1,37 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Key, Cpu, HelpCircle } from 'lucide-react';
+import { X, ExternalLink, Key, Cpu, RefreshCw } from 'lucide-react';
+import { fetchGeminiModels } from '../services/aiService';
 
 export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [formData, setFormData] = useState(settings);
+  const [dynamicModels, setDynamicModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelStatus, setModelStatus] = useState('');
 
   if (!isOpen) return null;
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFetchModels = async () => {
+    if (!formData.geminiKey) {
+      setModelStatus('Ingresa primero tu Gemini API Key');
+      return;
+    }
+    setLoadingModels(true);
+    setModelStatus('Consultando modelos de Google...');
+    const models = await fetchGeminiModels(formData.geminiKey);
+    setLoadingModels(false);
+    if (models.length > 0) {
+      setDynamicModels(models);
+      setModelStatus(`¡${models.length} modelos detectados!`);
+      if (!models.includes(formData.model)) {
+        handleChange('model', models[0]);
+      }
+    } else {
+      setModelStatus('No se pudieron obtener modelos. Revisa tu clave.');
+    }
   };
 
   const handleSave = (e) => {
@@ -36,7 +60,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
                 const prov = e.target.value;
                 handleChange('provider', prov);
                 if (prov === 'gemini') {
-                  handleChange('model', 'gemini-1.5-flash');
+                  handleChange('model', 'gemini-3.8-flash');
                 } else {
                   handleChange('model', 'llama-3.3-70b-versatile');
                 }
@@ -71,19 +95,53 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
               </div>
 
               <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Cpu size={14} />
-                  <span>Modelo de Gemini</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Cpu size={14} />
+                    <span>Modelo de Gemini</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleFetchModels}
+                    disabled={loadingModels || !formData.geminiKey}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <RefreshCw size={11} className={loadingModels ? 'spin' : ''} />
+                    <span>Detectar disponibles</span>
+                  </button>
+                </div>
+
                 <select
                   className="form-select"
                   value={formData.model}
                   onChange={(e) => handleChange('model', e.target.value)}
                 >
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Rápido y equilibrado)</option>
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Última generación)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Razonamiento profundo)</option>
+                  {dynamicModels.length > 0 ? (
+                    dynamicModels.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recomendado oficial por Google)</option>
+                      <option value="gemini-3.8-pro">Gemini 3.8 Pro (Razonamiento avanzado)</option>
+                      <option value="gemini-3.8-flash-latest">Gemini 3.8 Flash Latest</option>
+                    </>
+                  )}
                 </select>
+                {modelStatus && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {modelStatus}
+                  </span>
+                )}
               </div>
             </>
           ) : (
@@ -151,4 +209,3 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     </div>
   );
 }
-

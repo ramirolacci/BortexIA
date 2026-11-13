@@ -4,10 +4,27 @@
  * y Groq Cloud (ultra velocidad Llama 3 / DeepSeek R1).
  */
 
+export async function fetchGeminiModels(apiKey) {
+  if (!apiKey) return [];
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.models) return [];
+    return data.models
+      .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+      .map(m => m.name.replace(/^models\//, ''))
+      .filter(name => name.includes('gemini'));
+  } catch (e) {
+    console.error('Error fetching models', e);
+    return [];
+  }
+}
+
 export async function streamChatCompletion({
   provider = 'gemini',
   apiKey,
-  model = 'gemini-1.5-flash',
+  model = 'gemini-3.8-flash',
   messages = [],
   webSearch = false,
   systemPrompt = '',
@@ -20,7 +37,7 @@ export async function streamChatCompletion({
   }
 
   if (provider === 'gemini') {
-    return streamGemini({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources });
+    return streamGeminiWithFallback({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources });
   } else if (provider === 'groq') {
     return streamGroq({ apiKey, model, messages, systemPrompt, signal, onChunk });
   } else {
@@ -28,10 +45,60 @@ export async function streamChatCompletion({
   }
 }
 
-async function streamGemini({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources }) {
-  // Ajuste de modelo recomendado si no se especificó uno válido
-  const actualModel = model.startsWith('gemini') ? model : 'gemini-1.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
+async function streamGeminiWithFallback(params) {
+  let requestedModel = params.model;
+  // Reemplazar versiones viejas que Google ya deprecó
+  if (!requestedModel || requestedModel.includes('1.5') || requestedModel.includes('2.0') || requestedModel.includes('2.5')) {
+    requestedModel = 'gemini-3.8-flash';
+  }
+
+  const modelCandidates = [
+    requestedModel,
+    'gemini-3.8-flash',
+    'gemini-3.8-pro',
+    'gemini-3.8-flash-latest'
+  ].filter(Boolean);
+
+  const uniqueModels = [...new Set(modelCandidates)];
+  let lastError = null;
+
+  for (const candidateModel of uniqueModels) {
+    try {
+      return await streamGeminiSingle({ ...params, model: candidateModel });
+    } catch (err) {
+      lastError = err;
+      const errMsg = err.message || '';
+
+      // Si Google sugiere explícitamente un modelo en el mensaje de error:
+      // ej: "Please update your code to use models/gemini-3.8-flash"
+      const match = errMsg.match(/use models\/([a-zA-Z0-9_.-]+)/i);
+      if (match && match[1] && match[1] !== candidateModel) {
+        const suggestedModel = match[1];
+        console.info(`Google sugirió usar ${suggestedModel}. Reintentando automáticamente...`);
+        try {
+          return await streamGeminiSingle({ ...params, model: suggestedModel });
+        } catch (subErr) {
+          lastError = subErr;
+        }
+      }
+
+      // Si es error 404 de modelo no soportado / no encontrado
+      if (errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('404') || errMsg.includes('no longer available')) {
+        console.warn(`Modelo ${candidateModel} no disponible, intentando con alternativa...`);
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  throw lastError || new Error('No se pudo conectar con ningún modelo de Gemini disponible.');
+}
+
+async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPrompt, signal, onChunk, onSources }) {
+  // Limpiar prefijo si viniera con "models/"
+  const cleanModel = model.replace(/^models\//, '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   // Formatear mensajes para Gemini API
   const contents = messages.map(m => ({
@@ -69,7 +136,10 @@ async function streamGemini({ apiKey, model, messages, webSearch, systemPrompt, 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const message = errorData?.error?.message || `Error de Gemini API (${response.status}): ${response.statusText}`;
+    let message = errorData?.error?.message || `Error de Gemini API (${response.status}): ${response.statusText}`;
+    if (response.status === 429) {
+      message = 'Límite de cuota alcanzado en Google Gemini (Error 429). Espera 1 minuto para que se restablezca, o cambia a Groq Cloud en Ajustes (gratuito e instantáneo).';
+    }
     throw new Error(message);
   }
 
@@ -192,4 +262,3 @@ async function streamGroq({ apiKey, model, messages, systemPrompt, signal, onChu
 
   return { sources: [] };
 }
-

@@ -6,7 +6,7 @@ export const defaultSettings = {
   provider: 'gemini', // 'gemini' | 'groq'
   geminiKey: '',
   groqKey: '',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-3.8-flash',
   webSearchEnabled: true,
   systemPrompt: 'Eres BortexIA, un asistente de inteligencia artificial útil, preciso, analítico y conciso. Responde en español por defecto con formato Markdown claro.'
 };
@@ -14,7 +14,16 @@ export const defaultSettings = {
 export function getSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_SETTINGS_KEY);
-    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
+    if (!raw) return defaultSettings;
+    const parsed = { ...defaultSettings, ...JSON.parse(raw) };
+    
+    // Migración automática de modelos deprecados en localStorage
+    if (parsed.model === 'gemini-1.5-flash' || parsed.model === 'gemini-2.0-flash' || parsed.model === 'gemini-2.5-flash') {
+      parsed.model = 'gemini-3.8-flash';
+      saveSettings(parsed);
+    }
+    
+    return parsed;
   } catch {
     return defaultSettings;
   }
@@ -64,4 +73,3 @@ export function saveCurrentChatId(id) {
     console.error('Error saving current chat id', err);
   }
 }
-
