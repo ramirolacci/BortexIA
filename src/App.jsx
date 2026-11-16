@@ -20,16 +20,16 @@ function generateId() {
 
 function getModelDisplayName(settings) {
   if (settings.provider === 'groq') {
-    if (settings.model.includes('deepseek')) return 'DeepSeek R1 (Groq)';
     if (settings.model.includes('3.1')) return 'Llama 3.1 8B (Groq)';
-    return 'Llama 3.3 70B (Groq)';
+    if (settings.model.includes('3.2')) return 'Llama 3.2 11B (Groq)';
+    if (settings.model.includes('70b') || settings.model.includes('3.3')) return 'Llama 3.3 70B (Groq)';
+    return `${settings.model} (Groq)`;
   }
-  if (settings.model.includes('2.5-pro')) return 'Gemini 2.5 Pro';
-  if (settings.model.includes('2.5-flash-lite')) return 'Gemini 2.5 Flash-Lite';
-  if (settings.model.includes('2.5-flash')) return 'Gemini 2.5 Flash';
-  if (settings.model.includes('flash-latest')) return 'Gemini Flash Latest';
   if (settings.model.includes('3.8')) return 'Gemini 3.8 Flash';
-  return 'Gemini 2.5 Flash';
+  if (settings.model.includes('3.5')) return 'Gemini 3.5 Flash-Lite';
+  if (settings.model.includes('3.1')) return 'Gemini 3.1 Pro';
+  if (settings.model.includes('flash-latest')) return 'Gemini Flash Latest';
+  return 'Gemini 3.8 Flash';
 }
 
 export default function App() {
@@ -217,6 +217,7 @@ export default function App() {
       setIsStreaming(true);
 
       abortControllerRef.current = new AbortController();
+      let incognitoAccumulatedText = '';
 
       try {
         const conversationHistory = historyToSend.map(m => ({ 
@@ -234,21 +235,30 @@ export default function App() {
           systemPrompt: settings.systemPrompt,
           signal: abortControllerRef.current.signal,
           onChunk: (chunk) => {
+            incognitoAccumulatedText += chunk;
             setIncognitoMessages(prev => {
+              if (prev.length === 0) return prev;
               const copy = [...prev];
               const last = copy[copy.length - 1];
               if (last && last.role === 'assistant') {
-                last.content += chunk;
+                copy[copy.length - 1] = {
+                  ...last,
+                  content: incognitoAccumulatedText
+                };
               }
               return copy;
             });
           },
           onSources: (sources) => {
             setIncognitoMessages(prev => {
+              if (prev.length === 0) return prev;
               const copy = [...prev];
               const last = copy[copy.length - 1];
               if (last && last.role === 'assistant') {
-                last.sources = sources;
+                copy[copy.length - 1] = {
+                  ...last,
+                  sources
+                };
               }
               return copy;
             });
@@ -323,6 +333,7 @@ export default function App() {
     setIsStreaming(true);
 
     abortControllerRef.current = new AbortController();
+    let accumulatedText = '';
 
     try {
       const conversationHistory = updatedChats[chatIndex].messages
@@ -338,29 +349,36 @@ export default function App() {
         systemPrompt: settings.systemPrompt,
         signal: abortControllerRef.current.signal,
         onChunk: (chunk) => {
+          accumulatedText += chunk;
           setChats(prevChats => {
-            const copy = [...prevChats];
-            const targetChat = copy.find(c => c.id === activeChatId);
-            if (!targetChat) return prevChats;
-            const msgs = [...targetChat.messages];
-            const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg && lastMsg.role === 'assistant') {
-              lastMsg.content += chunk;
-            }
-            return copy;
+            return prevChats.map(c => {
+              if (c.id !== activeChatId) return c;
+              const msgs = [...c.messages];
+              const lastMsg = msgs[msgs.length - 1];
+              if (lastMsg && lastMsg.role === 'assistant') {
+                msgs[msgs.length - 1] = {
+                  ...lastMsg,
+                  content: accumulatedText
+                };
+              }
+              return { ...c, messages: msgs };
+            });
           });
         },
         onSources: (sources) => {
           setChats(prevChats => {
-            const copy = [...prevChats];
-            const targetChat = copy.find(c => c.id === activeChatId);
-            if (!targetChat) return prevChats;
-            const msgs = [...targetChat.messages];
-            const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg && lastMsg.role === 'assistant') {
-              lastMsg.sources = sources;
-            }
-            return copy;
+            return prevChats.map(c => {
+              if (c.id !== activeChatId) return c;
+              const msgs = [...c.messages];
+              const lastMsg = msgs[msgs.length - 1];
+              if (lastMsg && lastMsg.role === 'assistant') {
+                msgs[msgs.length - 1] = {
+                  ...lastMsg,
+                  sources
+                };
+              }
+              return { ...c, messages: msgs };
+            });
           });
         }
       });

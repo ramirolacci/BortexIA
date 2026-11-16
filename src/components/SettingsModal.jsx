@@ -1,30 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, ExternalLink, Key, Cpu, RefreshCw } from 'lucide-react';
-import { fetchGeminiModels } from '../services/aiService';
+import { fetchGeminiModels, fetchGroqModels } from '../services/aiService';
 import CustomSelect from './CustomSelect';
 
 const PROVIDER_OPTIONS = [
   { value: 'gemini', label: 'Google Gemini (Gratis + Búsqueda Web Google)' },
-  { value: 'groq', label: 'Groq Cloud (Gratis + Ultra Velocidad Llama 3.3)' }
+  { value: 'groq', label: 'Groq Cloud (Gratis + Ultra Velocidad Llama 3.1)' }
 ];
 
 const DEFAULT_GEMINI_MODELS = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recomendado oficial)' },
-  { value: 'gemini-flash-latest', label: 'Gemini Flash Latest' },
-  { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Ultra veloz)' },
-  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
-  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Razonamiento profundo)' }
+  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Recomendado oficial)' },
+  { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (Ultra veloz)' },
+  { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview (Razonamiento)' },
+  { value: 'gemini-flash-latest', label: 'Gemini Flash Latest' }
 ];
 
 const GROQ_MODEL_OPTIONS = [
-  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile (Recomendado)' },
-  { value: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill 70B (Razonamiento)' },
-  { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (Ultra veloz)' }
+  { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (Recomendado y ultra veloz)' },
+  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' },
+  { value: 'llama-3.2-11b-vision-preview', label: 'Llama 3.2 11B Vision' }
 ];
 
 export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [formData, setFormData] = useState(settings);
-  const [dynamicModels, setDynamicModels] = useState([]);
+  const [dynamicGeminiModels, setDynamicGeminiModels] = useState([]);
+  const [dynamicGroqModels, setDynamicGroqModels] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelStatus, setModelStatus] = useState('');
   const [isClosing, setIsClosing] = useState(false);
@@ -66,13 +66,33 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     const models = await fetchGeminiModels(formData.geminiKey);
     setLoadingModels(false);
     if (models.length > 0) {
-      setDynamicModels(models);
-      setModelStatus(`¡${models.length} modelos detectados!`);
+      setDynamicGeminiModels(models);
+      setModelStatus(`¡${models.length} modelos de Google detectados!`);
       if (!models.includes(formData.model)) {
         handleChange('model', models[0]);
       }
     } else {
       setModelStatus('No se pudieron obtener modelos. Revisa tu clave.');
+    }
+  };
+
+  const handleFetchGroqModels = async () => {
+    if (!formData.groqKey) {
+      setModelStatus('Ingresa primero tu Groq API Key');
+      return;
+    }
+    setLoadingModels(true);
+    setModelStatus('Consultando modelos de Groq...');
+    const models = await fetchGroqModels(formData.groqKey);
+    setLoadingModels(false);
+    if (models.length > 0) {
+      setDynamicGroqModels(models);
+      setModelStatus(`¡${models.length} modelos de Groq detectados!`);
+      if (!models.includes(formData.model)) {
+        handleChange('model', models.includes('llama-3.1-8b-instant') ? 'llama-3.1-8b-instant' : models[0]);
+      }
+    } else {
+      setModelStatus('No se pudieron obtener modelos de Groq. Revisa tu clave.');
     }
   };
 
@@ -82,9 +102,13 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
     handleSmoothClose();
   };
 
-  const currentGeminiOptions = dynamicModels.length > 0
-    ? dynamicModels.map(m => ({ value: m, label: m }))
+  const currentGeminiOptions = dynamicGeminiModels.length > 0
+    ? dynamicGeminiModels.map(m => ({ value: m, label: m }))
     : DEFAULT_GEMINI_MODELS;
+
+  const currentGroqOptions = dynamicGroqModels.length > 0
+    ? dynamicGroqModels.map(m => ({ value: m, label: m }))
+    : GROQ_MODEL_OPTIONS;
 
   return (
     <div 
@@ -110,10 +134,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
               options={PROVIDER_OPTIONS}
               onChange={(prov) => {
                 handleChange('provider', prov);
+                setModelStatus('');
                 if (prov === 'gemini') {
-                  handleChange('model', 'gemini-2.5-flash');
+                  handleChange('model', 'gemini-3.8-flash');
                 } else {
-                  handleChange('model', 'llama-3.3-70b-versatile');
+                  handleChange('model', 'llama-3.1-8b-instant');
                 }
               }}
             />
@@ -204,15 +229,42 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }) {
               </div>
 
               <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Cpu size={14} />
-                  <span>Modelo Groq</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Cpu size={14} />
+                    <span>Modelo Groq</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleFetchGroqModels}
+                    disabled={loadingModels || !formData.groqKey}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <RefreshCw size={11} className={loadingModels ? 'spin' : ''} />
+                    <span>Detectar disponibles</span>
+                  </button>
+                </div>
+
                 <CustomSelect
                   value={formData.model}
-                  options={GROQ_MODEL_OPTIONS}
+                  options={currentGroqOptions}
                   onChange={(val) => handleChange('model', val)}
                 />
+
+                {modelStatus && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {modelStatus}
+                  </span>
+                )}
               </div>
             </>
           )}

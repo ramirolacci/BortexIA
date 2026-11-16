@@ -505,6 +505,7 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 28px;
+  box-sizing: border-box;
 }
 
 /* Estado Vacío (Zero State minimalista) */
@@ -566,6 +567,8 @@ html, body, #root {
   display: flex;
   gap: 14px;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   animation: gsapMessageIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -605,9 +608,11 @@ html, body, #root {
 
 .assistant-body {
   flex: 1;
+  min-width: 0;
   font-size: 0.96rem;
   line-height: 1.68;
   color: var(--text-primary);
+  overflow-wrap: break-word;
   word-break: break-word;
 }
 
@@ -664,6 +669,12 @@ html, body, #root {
 }
 
 /* Renderizado Markdown */
+.markdown-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
 .markdown-content p {
   margin-bottom: 14px;
 }
@@ -685,10 +696,18 @@ html, body, #root {
   margin-bottom: 5px;
 }
 .markdown-content table {
-  border-collapse: collapse;
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
   margin: 14px 0;
   font-size: 0.88rem;
+  -webkit-overflow-scrolling: touch;
+}
+.markdown-content pre {
+  max-width: 100%;
+  overflow-x: auto;
 }
 .markdown-content th, 
 .markdown-content td {

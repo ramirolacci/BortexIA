@@ -47,7 +47,7 @@ export function generateImageUrl(prompt) {
 export async function streamChatCompletion({
   provider = 'gemini',
   apiKey,
-  model = 'gemini-2.5-flash',
+  model = 'gemini-3.8-flash',
   messages = [],
   webSearch = false,
   systemPrompt = '',
@@ -89,7 +89,7 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || 'gemini-2.5-flash',
+      model: model || 'gemini-3.8-flash',
       messages,
       webSearch,
       systemPrompt
@@ -99,6 +99,9 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      throw new Error('El endpoint /api/chat no fue encontrado (Error 404). Si estás probando en localhost, reinicia el servidor con "pnpm run dev" para activar el soporte local de /api/chat, o ingresa tu clave gratuita en Ajustes.');
+    }
     throw new Error(errorData.error || `Error del servidor (${response.status})`);
   }
 
@@ -169,17 +172,15 @@ async function streamNetlifyBackend({ model, messages, webSearch, systemPrompt, 
 async function streamGeminiWithFallback(params) {
   let requestedModel = (params.model || '').replace(/^models\//, '');
   if (!requestedModel) {
-    requestedModel = 'gemini-2.5-flash';
+    requestedModel = 'gemini-3.8-flash';
   }
 
   const modelCandidates = [
     requestedModel,
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'gemini-2.5-flash-lite',
-    'gemini-flash-lite-latest',
     'gemini-3.8-flash',
-    'gemini-2.5-pro'
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-pro-preview',
+    'gemini-flash-latest'
   ].filter(Boolean);
 
   const uniqueModels = [...new Set(modelCandidates)];
@@ -336,8 +337,96 @@ async function streamGeminiSingle({ apiKey, model, messages, webSearch, systemPr
   return { sources: discoveredSources };
 }
 
+export async function fetchGroqModels(apiKey) {
+  const cleanKey = (apiKey || '').trim().replace(/^["']|["']$/g, '');
+  if (!cleanKey) return [];
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${cleanKey}`
+      }
+    });
+    if (!res.ok) {
+      console.warn(`Groq models endpoint devolvió status ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    return (data.data || [])
+      .map(m => m.id)
+      .filter(id => !id.includes('whisper') && !id.includes('guard') && !id.includes('orpheus') && !id.includes('tts'));
+  } catch (e) {
+    console.error('Error fetching Groq models', e);
+    return [];
+  }
+}
+
 async function streamGroq({ apiKey, model, messages, systemPrompt, signal, onChunk }) {
-  const actualModel = model.includes('llama') || model.includes('deepseek') ? model : 'llama-3.3-70b-versatile';
+  const cleanKey = (apiKey || '').trim().replace(/^["']|["']$/g, '');
+  let requestedModel = model;
+  if (!requestedModel || requestedModel.includes('gemini') || requestedModel.includes('deepseek')) {
+    requestedModel = 'llama-3.1-8b-instant';
+  }
+
+  // 1. Consultar modelos activos en tiempo real para esta clave
+  let liveModels = [];
+  try {
+    liveModels = await fetchGroqModels(cleanKey);
+    if (liveModels.length > 0) {
+      console.log('Modelos activos en tu cuenta de Groq:', liveModels);
+    }
+  } catch {
+    // Si la consulta previa no responde, continuamos con lista estática
+  }
+
+  // 2. Construir lista de candidatos priorizando modelos válidos de la cuenta
+  const candidateModels = [];
+  if (requestedModel && (!liveModels.length || liveModels.includes(requestedModel))) {
+    candidateModels.push(requestedModel);
+  }
+  if (liveModels.length > 0) {
+    if (liveModels.includes('llama-3.1-8b-instant')) candidateModels.push('llama-3.1-8b-instant');
+    if (liveModels.includes('llama-3.3-70b-versatile')) candidateModels.push('llama-3.3-70b-versatile');
+    candidateModels.push(...liveModels);
+  } else {
+    candidateModels.push(
+      'llama-3.1-8b-instant',
+      'llama-3.3-70b-versatile',
+      'llama-3.2-11b-vision-preview',
+      'llama-3.2-3b-preview',
+      'llama-3.2-1b-preview',
+      'gemma2-9b-it'
+    );
+  }
+
+  const uniqueCandidates = [...new Set(candidateModels.filter(Boolean))];
+  let lastError = null;
+
+  for (const candModel of uniqueCandidates) {
+    try {
+      return await streamGroqSingle({ apiKey: cleanKey, model: candModel, messages, systemPrompt, signal, onChunk });
+    } catch (err) {
+      lastError = err;
+      const errMsg = err.message || '';
+      // Si el modelo no existe, no se tiene acceso, fue deprecado o devuelve 400/404, probamos el siguiente
+      if (
+        errMsg.includes('does not exist') || 
+        errMsg.includes('not have access') || 
+        errMsg.includes('404') ||
+        errMsg.includes('decommissioned') ||
+        errMsg.includes('deprecated') ||
+        errMsg.includes('400')
+      ) {
+        console.warn(`Modelo de Groq ${candModel} no disponible (${errMsg}), probando alternativa...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError || new Error('No se pudo conectar con ningún modelo de Groq disponible.');
+}
+
+async function streamGroqSingle({ apiKey, model, messages, systemPrompt, signal, onChunk }) {
   const url = 'https://api.groq.com/openai/v1/chat/completions';
 
   const formattedMessages = [];
@@ -355,7 +444,7 @@ async function streamGroq({ apiKey, model, messages, systemPrompt, signal, onChu
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: actualModel,
+      model,
       messages: formattedMessages,
       stream: true,
       temperature: 0.7
