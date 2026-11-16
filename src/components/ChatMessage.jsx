@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, ExternalLink, Globe } from 'lucide-react';
+import { Copy, Check, ExternalLink, Globe, Share2, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 function CodeBlock({ language, value }) {
   const [copied, setCopied] = useState(false);
@@ -31,6 +31,34 @@ function CodeBlock({ language, value }) {
 export default function ChatMessage({ message, isLast, isStreaming }) {
   const isUser = message.role === 'user';
   const hasSources = message.sources && message.sources.length > 0;
+  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [feedback, setFeedback] = useState(null); // 'up' | 'down' | null
+
+  const handleCopyMessage = () => {
+    if (!message.content) return;
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShareMessage = () => {
+    if (!message.content) return;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Respuesta de BortexIA',
+        text: message.content
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(message.content);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
+  const handleFeedback = (type) => {
+    setFeedback(prev => prev === type ? null : type);
+  };
 
   if (isUser) {
     return (
@@ -104,6 +132,13 @@ export default function ChatMessage({ message, isLast, isStreaming }) {
                     />
                   );
                 },
+                table({ node, ...props }) {
+                  return (
+                    <div className="table-responsive-wrapper">
+                      <table {...props} />
+                    </div>
+                  );
+                },
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   const codeString = String(children).replace(/\n$/, '');
@@ -131,6 +166,53 @@ export default function ChatMessage({ message, isLast, isStreaming }) {
             <div className="typing-dot" />
           </div>
         ) : null}
+
+        {message.content && (!isStreaming || !isLast) && (
+          <div className="message-action-bar">
+            <button 
+              type="button" 
+              className={`action-bar-btn ${copied ? 'active' : ''}`} 
+              onClick={handleCopyMessage}
+              title={copied ? "Copiado al portapapeles" : "Copiar respuesta"}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+
+            <button 
+              type="button" 
+              className={`action-bar-btn ${shared ? 'active' : ''}`} 
+              onClick={handleShareMessage}
+              title={shared ? "Texto copiado" : "Compartir respuesta"}
+            >
+              {shared ? <Check size={14} /> : <Share2 size={14} />}
+            </button>
+
+            <button 
+              type="button" 
+              className={`action-bar-btn ${feedback === 'up' ? 'active' : ''}`} 
+              onClick={() => handleFeedback('up')}
+              title="Buena respuesta"
+            >
+              <ThumbsUp size={14} />
+            </button>
+
+            <button 
+              type="button" 
+              className={`action-bar-btn ${feedback === 'down' ? 'active' : ''}`} 
+              onClick={() => handleFeedback('down')}
+              title="Mala respuesta"
+            >
+              <ThumbsDown size={14} />
+            </button>
+
+            {hasSources && (
+              <span className="action-bar-source-badge" title="Fuentes web citadas">
+                <Globe size={11} />
+                <span>{message.sources.length} {message.sources.length === 1 ? 'fuente' : 'fuentes'}</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

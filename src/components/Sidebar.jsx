@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Plus, 
   MessageSquare, 
@@ -9,7 +9,8 @@ import {
   Settings, 
   Download, 
   PanelLeftClose, 
-  Search
+  Search,
+  Clock
 } from 'lucide-react';
 
 function groupChatsByDate(chats) {
@@ -58,6 +59,21 @@ export default function Sidebar({
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showRecentPopover, setShowRecentPopover] = useState(false);
+  const popoverTimeoutRef = useRef(null);
+
+  const handleMouseEnterRecent = () => {
+    if (popoverTimeoutRef.current) {
+      clearTimeout(popoverTimeoutRef.current);
+    }
+    setShowRecentPopover(true);
+  };
+
+  const handleMouseLeaveRecent = () => {
+    popoverTimeoutRef.current = setTimeout(() => {
+      setShowRecentPopover(false);
+    }, 200);
+  };
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return chats;
@@ -187,6 +203,79 @@ export default function Sidebar({
           >
             <Plus size={18} />
           </button>
+
+          {/* Botón de reloj para Historial Reciente con Popover flotante al pasar el cursor */}
+          <div 
+            className="collapsed-recent-wrapper"
+            onMouseEnter={handleMouseEnterRecent}
+            onMouseLeave={handleMouseLeaveRecent}
+          >
+            <button 
+              type="button" 
+              className={`collapsed-action-btn recent-btn ${showRecentPopover ? 'active' : ''}`}
+              onClick={() => setShowRecentPopover(prev => !prev)}
+              title="Chats recientes"
+            >
+              <Clock size={18} />
+            </button>
+
+            {showRecentPopover && (
+              <div 
+                className="recent-chats-popover"
+                onMouseEnter={handleMouseEnterRecent}
+                onMouseLeave={handleMouseLeaveRecent}
+              >
+                <div className="recent-popover-header">
+                  <div className="recent-popover-title">
+                    <Clock size={14} />
+                    <span>Chats recientes</span>
+                  </div>
+                  {chats.length > 0 && (
+                    <span className="recent-popover-badge">{chats.length}</span>
+                  )}
+                </div>
+
+                <div className="recent-popover-list">
+                  {chats.length === 0 ? (
+                    <div className="recent-popover-empty">
+                      <span>No hay conversaciones recientes</span>
+                    </div>
+                  ) : (
+                    chats.slice(0, 15).map(chat => {
+                      const isActive = chat.id === currentChatId;
+                      return (
+                        <div
+                          key={chat.id}
+                          className={`recent-popover-item ${isActive ? 'active' : ''}`}
+                          onClick={() => {
+                            onSelectChat(chat.id);
+                            setShowRecentPopover(false);
+                          }}
+                          title={chat.title}
+                        >
+                          <MessageSquare size={13} className="recent-item-icon" />
+                          <span className="recent-item-text">{chat.title || 'Nueva conversación'}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="recent-popover-footer">
+                  <button 
+                    type="button" 
+                    className="recent-popover-expand-btn"
+                    onClick={() => {
+                      setShowRecentPopover(false);
+                      onToggle();
+                    }}
+                  >
+                    <span>Abrir panel completo</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="collapsed-spacer" />
 

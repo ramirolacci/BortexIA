@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ChatMessage from './components/ChatMessage';
 import Composer from './components/Composer';
 import SettingsModal from './components/SettingsModal';
+import ConfirmModal from './components/ConfirmModal';
 import { 
   getChats, 
   saveChats, 
@@ -12,10 +13,85 @@ import {
   saveSettings 
 } from './services/storage';
 import { streamChatCompletion } from './services/aiService';
-import { AlertCircle, Menu, Plus, VenetianMask } from 'lucide-react';
+import { AlertCircle, Menu, Plus, VenetianMask, Sparkles, Globe, Image as ImageIcon, ExternalLink } from 'lucide-react';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
+}
+
+function extractLinksFromMessages(messages) {
+  const sourcesMap = new Map();
+
+  for (const m of messages) {
+    if (m.sources && Array.isArray(m.sources)) {
+      for (const s of m.sources) {
+        if (s.url && !sourcesMap.has(s.url)) {
+          let domain = '';
+          try {
+            domain = new URL(s.url).hostname.replace(/^www\./, '');
+          } catch {
+            domain = 'web';
+          }
+          sourcesMap.set(s.url, {
+            title: s.title || s.url,
+            url: s.url,
+            domain
+          });
+        }
+      }
+    }
+
+    if (m.content) {
+      const mdRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
+      let match;
+      while ((match = mdRegex.exec(m.content)) !== null) {
+        const title = match[1];
+        const url = match[2];
+        if (!sourcesMap.has(url)) {
+          try {
+            const domain = new URL(url).hostname.replace(/^www\./, '');
+            sourcesMap.set(url, { title, url, domain });
+          } catch {
+            // Ignorar URLs inválidas
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(sourcesMap.values());
+}
+
+function extractImagesFromMessages(messages) {
+  const images = [];
+
+  for (const m of messages) {
+    if (m.image?.dataUrl) {
+      images.push({
+        url: m.image.dataUrl,
+        title: 'Imagen adjunta por el usuario',
+        from: 'user'
+      });
+    }
+
+    if (m.content) {
+      const imgRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s\)]+)\)/g;
+      let match;
+      while ((match = imgRegex.exec(m.content)) !== null) {
+        const alt = match[1] || 'Imagen';
+        const url = match[2];
+        if (!images.some(img => img.url === url)) {
+          images.push({
+            url,
+            title: alt,
+            from: 'assistant'
+          });
+        }
+      }
+    }
+  }
+
+  return images;
 }
 
 function getModelDisplayName(settings) {
@@ -39,6 +115,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
   const [input, setInput] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -46,6 +123,7 @@ export default function App() {
   const [errorBanner, setErrorBanner] = useState(null);
   const [isIncognito, setIsIncognito] = useState(false);
   const [incognitoMessages, setIncognitoMessages] = useState([]);
+  const [activeTab, setActiveTab] = useState('answer'); // 'answer' | 'sources' | 'images'
 
   const abortControllerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -73,6 +151,8 @@ export default function App() {
 
   const currentChat = isIncognito ? null : chats.find(c => c.id === currentChatId);
   const activeMessages = isIncognito ? incognitoMessages : (currentChat ? currentChat.messages : []);
+  const allSources = extractLinksFromMessages(activeMessages);
+  const allImages = extractImagesFromMessages(activeMessages);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,11 +169,13 @@ export default function App() {
       setInput('');
       setAttachedImage(null);
       setErrorBanner(null);
+      setActiveTab('answer');
       return next;
     });
   };
 
   const handleNewChat = () => {
+    setActiveTab('answer');
     if (isIncognito) {
       setIncognitoMessages([]);
       setInput('');
@@ -122,6 +204,7 @@ export default function App() {
   };
 
   const handleSelectChat = (id) => {
+    setActiveTab('answer');
     if (isIncognito) {
       setIsIncognito(false);
       setIncognitoMessages([]);
@@ -148,13 +231,15 @@ export default function App() {
   };
 
   const handleClearAllChats = () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar todas las conversaciones del historial?')) {
-      setChats([]);
-      setCurrentChatId(null);
-      setErrorBanner(null);
-      if (isMobile) {
-        setIsSidebarOpen(false);
-      }
+    setIsClearAllModalOpen(true);
+  };
+
+  const handleConfirmClearAll = () => {
+    setChats([]);
+    setCurrentChatId(null);
+    setErrorBanner(null);
+    if (isMobile) {
+      setIsSidebarOpen(false);
     }
   };
 
@@ -191,6 +276,7 @@ export default function App() {
 
     setErrorBanner(null);
     setInput('');
+    setActiveTab('answer');
     const sentImage = attachedImage;
     setAttachedImage(null);
 
@@ -532,6 +618,45 @@ export default function App() {
           </div>
         )}
 
+        {hasMessages && (
+          <div className="chat-tabs-bar">
+            <div className="chat-tabs-inner">
+              <button 
+                type="button" 
+                className={`chat-tab-btn ${activeTab === 'answer' ? 'active' : ''}`}
+                onClick={() => setActiveTab('answer')}
+              >
+                <Sparkles size={14} />
+                <span>Respuesta</span>
+              </button>
+
+              <button 
+                type="button" 
+                className={`chat-tab-btn ${activeTab === 'sources' ? 'active' : ''}`}
+                onClick={() => setActiveTab('sources')}
+              >
+                <Globe size={14} />
+                <span>Enlaces</span>
+                {allSources.length > 0 && (
+                  <span className="tab-count-badge">{allSources.length}</span>
+                )}
+              </button>
+
+              <button 
+                type="button" 
+                className={`chat-tab-btn ${activeTab === 'images' ? 'active' : ''}`}
+                onClick={() => setActiveTab('images')}
+              >
+                <ImageIcon size={14} />
+                <span>Imágenes</span>
+                {allImages.length > 0 && (
+                  <span className="tab-count-badge">{allImages.length}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
         <main className="messages-container">
           {!hasMessages ? (
             <div className="empty-state">
@@ -549,6 +674,65 @@ export default function App() {
                   <h1>¿En qué te puedo ayudar hoy?</h1>
                   <p>Haz cualquier pregunta, pide ideas, crea imágenes o escribe código.</p>
                 </>
+              )}
+            </div>
+          ) : activeTab === 'sources' ? (
+            <div className="tab-content-container">
+              {allSources.length === 0 ? (
+                <div className="tab-empty-state">
+                  <Globe size={36} className="tab-empty-icon" />
+                  <h3>No hay enlaces en esta conversación</h3>
+                  <p>Cuando la IA consulte la web o cite páginas de internet, aparecerán organizadas aquí para acceder fácilmente a cada fuente.</p>
+                </div>
+              ) : (
+                <div className="sources-tab-grid">
+                  {allSources.map((source, idx) => (
+                    <a 
+                      key={idx} 
+                      href={source.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="source-tab-card"
+                    >
+                      <div className="source-card-top">
+                        <span className="source-domain">{source.domain}</span>
+                        <ExternalLink size={13} className="source-open-icon" />
+                      </div>
+                      <div className="source-title">{source.title}</div>
+                      <span className="source-url-text">{source.url}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'images' ? (
+            <div className="tab-content-container">
+              {allImages.length === 0 ? (
+                <div className="tab-empty-state">
+                  <ImageIcon size={36} className="tab-empty-icon" />
+                  <h3>No hay imágenes en esta conversación</h3>
+                  <p>Las imágenes que adjuntes con el clip o las que pidas generar aparecerán reunidas aquí en una galería.</p>
+                </div>
+              ) : (
+                <div className="images-tab-grid">
+                  {allImages.map((img, idx) => (
+                    <div key={idx} className="image-tab-card">
+                      <img src={img.url} alt={img.title} />
+                      <div className="image-card-footer">
+                        <span className="image-card-title">{img.title}</span>
+                        <a 
+                          href={img.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="image-download-link"
+                          title="Abrir imagen"
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ) : (
@@ -586,6 +770,16 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={handleSaveSettings}
+      />
+
+      <ConfirmModal
+        isOpen={isClearAllModalOpen}
+        onClose={() => setIsClearAllModalOpen(false)}
+        onConfirm={handleConfirmClearAll}
+        title="¿Eliminar todas las conversaciones?"
+        message="¿Estás seguro de que deseas eliminar todas las conversaciones del historial? Esta acción no se puede deshacer."
+        confirmText="Aceptar"
+        cancelText="Cancelar"
       />
     </div>
   );
