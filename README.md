@@ -24,7 +24,14 @@
 ## 📸 Galería & Vista Previa
 
 <div align="center">
-  <img src="public/screenshots/Screenshot_5.png" alt="Vista Previa de BortexIA" width="100%" style="border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);">
+  <p align="center">
+    <img src="public/screenshots/Screenshot_5.png" alt="Vista Previa de BortexIA - Captura 1" width="49%" style="border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+    <img src="public/screenshots/Screenshot_6.png" alt="Vista Previa de BortexIA - Captura 2" width="49%" style="border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+  </p>
+  <p align="center">
+    <img src="public/screenshots/Screenshot_7.png" alt="Vista Previa de BortexIA - Captura 3" width="49%" style="border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+    <img src="public/screenshots/Screenshot_8.png" alt="Vista Previa de BortexIA - Captura 4" width="49%" style="border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+  </p>
 </div>
 
 ---
